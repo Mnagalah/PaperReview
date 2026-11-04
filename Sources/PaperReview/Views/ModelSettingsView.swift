@@ -5,7 +5,6 @@ struct ModelSettingsView: View {
     @Bindable var store: WorkspaceStore
     @Bindable var controller: ModelProcessController
     @State private var draft: ModelConfiguration
-    @State private var message = ""
     @State private var advanced = false
     @State private var confirmingDownload = false
     @AppStorage(WorkspaceAppearance.preferenceKey) private var appearance = WorkspaceAppearance.dark.rawValue
@@ -29,38 +28,35 @@ struct ModelSettingsView: View {
                     Button("启动模型") { controller.run("start_models.sh", store: store) }
                     Button("停止模型") { controller.run("stop_models.sh", store: store) }
                     Spacer()
-                    if controller.busy { ProgressView().controlSize(.small) }
+                    Button("删除模型…", role: .destructive) { controller.prepareRemoval() }
+                    if controller.busy && controller.download?.phase != .downloading { ProgressView().controlSize(.small) }
                     Button { Task { await store.checkModels() } } label: { Image(systemName: "arrow.clockwise") }.help("检查连接")
                 }.disabled(controller.busy || store.activeID != nil)
-                if !controller.output.isEmpty {
+                if let progress = controller.download {
+                    ModelDownloadView(progress: progress,
+                        retry: { controller.run("setup_models_modelscope.sh", store: store) },
+                        retryDisabled: controller.busy || store.activeID != nil)
+                }
+                if !controller.output.isEmpty && controller.download == nil {
                     Text(controller.output).font(.callout).textSelection(.enabled).fixedSize(horizontal: false, vertical: true)
                 }
             }
             Section {
-                DisclosureGroup("高级设置", isExpanded: $advanced) {
-                    TextField("OCR 地址", text: $draft.ocrURL)
-                    TextField("Jev 地址", text: $draft.jevURL)
-                    TextField("审核地址", text: $draft.reviewURL)
-                    TextField("模型目录", text: $controller.modelHome).disabled(controller.busy)
-                    HStack {
-                        Text("复识参考分")
-                        Slider(value: $draft.threshold, in: 0.1...0.999, step: 0.01).frame(width: 150)
-                        Text(draft.threshold, format: .number.precision(.fractionLength(2))).monospacedDigit()
-                    }
-                    Stepper("最多识别 \(draft.maximumAttempts) 次", value: $draft.maximumAttempts, in: 1...3)
-                    Text("逐词核验稳定时继续审核；其余低分结果追加候选。分数不是识别准确率。")
-                        .font(.callout).foregroundStyle(.secondary)
-                    Button("保存") {
-                        do { try store.saveConfiguration(draft); message = "已保存"; Task { await store.checkModels() } }
-                        catch { message = error.localizedDescription }
-                    }
-                    if !message.isEmpty { Text(message).font(.callout).foregroundStyle(.secondary) }
+                SettingsDisclosure(title: "高级设置", isExpanded: $advanced) {
+                    ModelAdvancedSettingsView(store: store, controller: controller, draft: $draft)
                 }
             }
             Text("作业只在本机处理。模型独立运行，关闭窗口后可在此停止。")
                 .font(.callout).foregroundStyle(.secondary)
         }
-        .formStyle(.grouped).padding(10).frame(width: 610, height: 640)
+        .formStyle(.grouped).padding(10).frame(width: 640, height: 720)
+        .alert("删除本机模型？", isPresented: Binding(get: { controller.removal != nil }, set: { if !$0 { controller.removal = nil } }),
+            presenting: controller.removal) { plan in
+            Button("移到废纸篓", role: .destructive) { controller.removeModels(plan) }
+            Button("取消", role: .cancel) {}
+        } message: { plan in
+            Text("将 \(ByteCountFormatter.string(fromByteCount: plan.bytes, countStyle: .decimal)) 模型及未完成下载移到废纸篓。运行时和学生作业保留。\n\(plan.home.path)")
+        }
         .alert("下载本机模型？", isPresented: $confirmingDownload) {
             Button("下载") { controller.run("setup_models_modelscope.sh", store: store) }
             Button("取消", role: .cancel) {}

@@ -56,14 +56,14 @@ mkdir -p "$STAGED_APP/Contents/MacOS" "$STAGED_APP/Contents/Resources"
 cp "$BINARY" "$STAGED_APP/Contents/MacOS/$APP_NAME"
 if [[ "$CONFIGURATION" == release ]]; then /usr/bin/strip -S "$STAGED_APP/Contents/MacOS/$APP_NAME"; fi
 chmod 755 "$STAGED_APP/Contents/MacOS/$APP_NAME"
-cp script/start_models.sh script/stop_models.sh script/setup_models_modelscope.sh script/install_runtime.sh "$STAGED_APP/Contents/Resources/"
+cp script/start_models.sh script/stop_models.sh script/setup_models_modelscope.sh script/install_runtime.sh script/download_file.sh script/model_downloads.tsv "$STAGED_APP/Contents/Resources/"
 cp docs/THIRD_PARTY.md "$STAGED_APP/Contents/Resources/"
 /usr/bin/python3 - "$STAGED_APP/Contents/Info.plist" "$ROOT" "$CONFIGURATION" <<'PY'
 import plistlib,sys
 with open(sys.argv[1], 'wb') as f:
     info=dict(CFBundleExecutable='PaperReview', CFBundleIdentifier='local.paperreview.mac',
         CFBundleName='作文批阅', CFBundleDisplayName='作文批阅', CFBundlePackageType='APPL',
-        CFBundleShortVersionString='0.1.0', CFBundleVersion='1', LSMinimumSystemVersion='14.0',
+        CFBundleShortVersionString='0.1.1', CFBundleVersion='2', LSMinimumSystemVersion='14.0',
         NSPrincipalClass='NSApplication', NSHighResolutionCapable=True,
         NSAppTransportSecurity=dict(NSAllowsLocalNetworking=True))
     if sys.argv[3]=='debug': info['PaperReviewProjectRoot']=sys.argv[2]

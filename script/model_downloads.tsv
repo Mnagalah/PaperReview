@@ -1,0 +1,6 @@
+ocr	MiniCPM-OCR	weights/MiniCPM-OCR-1_0-F16.gguf	.modelscope.part	1516288352	https://modelscope.cn/models/OpenBMB/MiniCPM-OCR-1.0-gguf/resolve/master/MiniCPM-OCR-1_0-F16.gguf
+ocr-projector	OCR 图像投影	weights/ocr-mmproj-f16-4x.gguf	.modelscope.part	901017536	https://modelscope.cn/models/OpenBMB/MiniCPM-OCR-1.0-gguf/resolve/master/mmproj-model-f16-4x.gguf
+jev	Jev	weights/MiniCPM-OCR-Jev-Q4_K_M.gguf	.modelscope.part	1274405248	https://modelscope.cn/models/OpenBMB/MiniCPM-OCR-Jev-gguf/resolve/master/MiniCPM-OCR-Jev-Q4_K_M.gguf
+jev-projector	Jev 图像投影	weights/jev-mmproj-f16.gguf	.modelscope.part	671372416	https://modelscope.cn/models/OpenBMB/MiniCPM-OCR-Jev-gguf/resolve/master/mmproj-model-f16.gguf
+review	MiniCPM5-2B	weights/MiniCPM5-2B-Q4_K_M.gguf	.modelscope.part	1561318368	https://modelscope.cn/models/OpenBMB/MiniCPM5-2B-GGUF/resolve/master/MiniCPM5-2B-Q4_K_M.gguf
+runtime	llama.cpp 运行时	runtime/llama-b11960-bin-macos-arm64.tar.gz	.part	16465074	https://github.com/ggml-org/llama.cpp/releases/download/b11960/llama-b11960-bin-macos-arm64.tar.gz

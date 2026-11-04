@@ -4,7 +4,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 FIXTURE="$(mktemp -d "${TMPDIR:-/tmp/}PaperReview-portable-setup.XXXXXX")"
 trap 'rm -rf "$FIXTURE"' EXIT
 mkdir -p "$FIXTURE/Resources" "$FIXTURE/models/weights" "$FIXTURE/bin"
-cp "$ROOT/script/setup_models_modelscope.sh" "$ROOT/script/install_runtime.sh" "$FIXTURE/Resources/"
+cp "$ROOT/script/setup_models_modelscope.sh" "$ROOT/script/install_runtime.sh" "$ROOT/script/download_file.sh" "$ROOT/script/model_downloads.tsv" "$FIXTURE/Resources/"
 printf '#!/bin/sh\nexit 0\n' > "$FIXTURE/server"
 chmod +x "$FIXTURE/server"
 printf '%s\n' "$FIXTURE/server" > "$FIXTURE/models/runtime.path"

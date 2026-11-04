@@ -15,6 +15,7 @@ swift test
 bash Tests/ModelScriptsTests/startup_tests.sh
 bash Tests/ModelScriptsTests/signing_tests.sh
 bash Tests/ModelScriptsTests/portable_setup_tests.sh
+python3 Tests/ModelScriptsTests/download_resume_tests.py
 ./script/build_and_run.sh --build-only
 ./script/package_release.sh
 ```
@@ -22,6 +23,10 @@ bash Tests/ModelScriptsTests/portable_setup_tests.sh
 `dist/PaperReview.app` 链接到 `~/Library/Developer/PaperReview/Build/PaperReview.app`。构建放在本地 Developer 目录，避免 Documents 文件提供程序改写签名；旧构建保存在 `Previous/`。
 
 脚本优先沿用已有开发证书，可通过 `PAPERREVIEW_SIGNING_IDENTITY` 指定。没有证书时回退 ad-hoc 签名并提示权限可能重询。Release 位于 `~/Library/Developer/PaperReview/Release/`，ZIP 位于 `dist/release/`，不包含源码路径或模型。发行版模型默认使用 Application Support，可在应用内下载；无需源码目录。
+
+下载清单由 `script/model_downloads.tsv` 统一定义，脚本和界面共用大小与文件路径。`download_file.sh` 输出逐文件状态；界面每 0.5 秒读取下载文件大小，以最近 5 秒的新增字节计算速度，不把缓存或续传起点算作本次速度。下载测试使用本机 HTTP 小文件，覆盖断连、503、重试、续传及运行时安装，不下载真实权重。
+
+删除只处理清单内的模型、对应临时文件及就绪标记。先用 `lsof` 检查文件占用，再整体移到废纸篓；失败时恢复已移动文件。运行时、其他模型和作业目录不在删除范围内。
 
 ## 测试
 
