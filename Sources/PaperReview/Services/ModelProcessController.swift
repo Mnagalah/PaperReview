@@ -7,13 +7,23 @@ import Observation
     var modelHome: String
     init() {
         let project = Bundle.main.object(forInfoDictionaryKey: "PaperReviewProjectRoot") as? String ?? ""
-        modelHome = UserDefaults.standard.string(forKey: "modelHome") ?? (project.isEmpty ? "" : project + "/.local-models")
+        modelHome = UserDefaults.standard.string(forKey: "modelHome") ?? Self.defaultModelHome(projectRoot: project)
+    }
+    static func defaultModelHome(projectRoot: String) -> String {
+        if !projectRoot.isEmpty { return projectRoot + "/.local-models" }
+        return FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("PaperReview/Models", isDirectory: true).path
     }
     func run(_ name: String, store: WorkspaceStore) {
         guard !busy else { return }
         guard !modelHome.isEmpty, let script = Bundle.main.resourceURL?.appendingPathComponent(name),
               FileManager.default.fileExists(atPath: script.path) else { output = "未找到模型管理脚本。请使用项目的 build_and_run.sh 构建完整应用。"; return }
-        busy = true; output = name == "start_models.sh" ? "正在启动本机模型…" : "正在停止本项目的模型…"
+        busy = true
+        switch name {
+        case "setup_models_modelscope.sh": output = "正在下载模型，支持断点续传…"
+        case "start_models.sh": output = "正在启动本机模型…"
+        default: output = "正在停止本项目的模型…"
+        }
         UserDefaults.standard.set(modelHome, forKey: "modelHome")
         let home = modelHome
         Task {
@@ -34,6 +44,7 @@ import Observation
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/bin/bash")
         process.arguments = [script.path]
+        process.currentDirectoryURL = URL(fileURLWithPath: NSHomeDirectory())
         var env = ProcessInfo.processInfo.environment; env["PAPERREVIEW_MODEL_HOME"] = home
         process.environment = env
         let pipe = Pipe(); process.standardOutput = pipe; process.standardError = pipe

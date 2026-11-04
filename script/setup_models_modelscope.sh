@@ -1,6 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 HOME_DIR="${PAPERREVIEW_MODEL_HOME:-$ROOT/.local-models}"
 mkdir -p "$HOME_DIR/weights" "$HOME_DIR/run"
 fetch() {
@@ -27,7 +28,7 @@ fetch MiniCPM5-2B-GGUF MiniCPM5-2B-Q4_K_M.gguf MiniCPM5-2B-Q4_K_M.gguf 156131836
 failed=0
 for pid in "$p1" "$p2" "$p3" "$p4" "$p5"; do wait "$pid" || failed=1; done
 [[ "$failed" == 0 ]] || exit 1
-"$ROOT/script/install_runtime.sh"
+PAPERREVIEW_MODEL_HOME="$HOME_DIR" /bin/bash "$SCRIPT_DIR/install_runtime.sh"
 printf 'OCR F16 + Jev Q4 + MiniCPM5-2B Q4 + llama.cpp b11960\n' > "$HOME_DIR/models-ready"
 printf 'MiniCPM-OCR-1_0-F16.gguf\n' > "$HOME_DIR/ocr-model"
 echo 'Local models ready (unquantized OCR F16).'

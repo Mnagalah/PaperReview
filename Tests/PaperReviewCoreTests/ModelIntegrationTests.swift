@@ -35,6 +35,7 @@ func semanticReviewUnderstandsContext() async throws {
         #expect(result.issues.contains { $0.lineID == line && $0.quote == quote && $0.suggestion == suggestion })
     }
     #expect(result.issues.allSatisfy { [1,2,4,8].contains($0.lineID) })
+    #expect(result.issues.count == 4)
 }
 
 @Test(.enabled(if: ProcessInfo.processInfo.environment["PAPERREVIEW_NORMAL_REVIEW_RECORD"] != nil))
@@ -79,5 +80,50 @@ func normalNarrativeReviewRecoversSpellingAndInheritedPastTimeWithoutChangingFac
             #expect(transcript == stored.transcript)
             #expect(result.issues.filter { $0.quote == "have" && $0.suggestion == "had" }.count == 2)
         }
+    }
+}
+
+@Test(.enabled(if: ProcessInfo.processInfo.environment["PAPERREVIEW_USAGE_REVIEW_EVIDENCE"] != nil))
+func usageReviewFindsUnseenConfusionsAndPreservesCorrectMeanings() async throws {
+    let text = """
+    We invited everyone accept Maya.
+    The children visited every room accept the kitchen.
+    She has worked here since six months.
+    We have been waiting since fifteen minutes.
+    Please accept my apology.
+    We accept credit cards.
+    Everyone except Tom was there.
+    I have lived here since 2020.
+    She has worked here since last May.
+    I have known him since I was ten.
+    We have lived here since three years ago.
+    Since it was raining, we stayed indoors.
+    I have lived here for three years.
+    This is a present for you.
+    My friend Since lives nearby.
+    The word "accept" has six letters.
+    """
+    let transcript = LineAlignment.fallback(text)
+    let start = Date()
+    let result = try await ModelClient().review(transcript: transcript, base: "http://127.0.0.1:18501")
+    struct Evidence: Encodable {
+        let input: String
+        let seconds: Double
+        let issues: [ReviewIssue]
+        let modelEvidence: ReviewModelEvidence?
+    }
+    let encoder = JSONEncoder(); encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+    let output = URL(fileURLWithPath: try #require(ProcessInfo.processInfo.environment["PAPERREVIEW_USAGE_REVIEW_EVIDENCE"]))
+    try encoder.encode(Evidence(input: text, seconds: Date().timeIntervalSince(start), issues: result.issues,
+        modelEvidence: result.modelEvidence)).write(to: output, options: .atomic)
+    #expect(transcript.text == text)
+    for (line, quote, suggestion) in [(1, "accept", "except"), (2, "accept", "except"), (3, "since", "for"), (4, "since", "for")] {
+        #expect(result.issues.contains { $0.lineID == line && $0.quote == quote && $0.suggestion == suggestion })
+    }
+    #expect(result.issues.count == 4)
+    #expect(result.issues.allSatisfy { [1, 2, 3, 4].contains($0.lineID) })
+    for issue in result.issues {
+        #expect((text as NSString).substring(with: issue.range) == issue.quote)
+        #expect(issue.revision == transcript.revision)
     }
 }

@@ -592,7 +592,7 @@ struct DuplicatePhoto: Identifiable {
         job.record.reviewRejections = result.rejections
         try await repository.saveReview(result, transcript: transcript, deferred: job.record.deferredReviewIssues ?? [], id: job.id)
         job.record.phaseDurations["review"] = Date().timeIntervalSince(start)
-        for stage in ["spelling_clues", "draft", "grammar", "context", "validation", "localization"] {
+        for stage in ["spelling_clues", "draft", "grammar", "context", "validation", "usage", "localization"] {
             job.record.phaseDurations["review_\(stage)"] = result.modelEvidence?.stageSeconds[stage]
         }
         job.record.phase = .complete; job.record.failedPhase = nil

@@ -7,6 +7,7 @@ struct ModelSettingsView: View {
     @State private var draft: ModelConfiguration
     @State private var message = ""
     @State private var advanced = false
+    @State private var confirmingDownload = false
     @AppStorage(WorkspaceAppearance.preferenceKey) private var appearance = WorkspaceAppearance.dark.rawValue
     init(store: WorkspaceStore, controller: ModelProcessController) {
         self.store = store; self.controller = controller
@@ -24,6 +25,7 @@ struct ModelSettingsView: View {
                 status("Jev", ready: store.modelHealth[1])
                 status("MiniCPM5-2B", ready: store.modelHealth[2])
                 HStack {
+                    Button("下载模型") { confirmingDownload = true }
                     Button("启动模型") { controller.run("start_models.sh", store: store) }
                     Button("停止模型") { controller.run("stop_models.sh", store: store) }
                     Spacer()
@@ -39,7 +41,7 @@ struct ModelSettingsView: View {
                     TextField("OCR 地址", text: $draft.ocrURL)
                     TextField("Jev 地址", text: $draft.jevURL)
                     TextField("审核地址", text: $draft.reviewURL)
-                    TextField("模型目录", text: $controller.modelHome)
+                    TextField("模型目录", text: $controller.modelHome).disabled(controller.busy)
                     HStack {
                         Text("复识参考分")
                         Slider(value: $draft.threshold, in: 0.1...0.999, step: 0.01).frame(width: 150)
@@ -59,6 +61,12 @@ struct ModelSettingsView: View {
                 .font(.callout).foregroundStyle(.secondary)
         }
         .formStyle(.grouped).padding(10).frame(width: 610, height: 640)
+        .alert("下载本机模型？", isPresented: $confirmingDownload) {
+            Button("下载") { controller.run("setup_models_modelscope.sh", store: store) }
+            Button("取消", role: .cancel) {}
+        } message: {
+            Text("从 OpenBMB 官方仓库下载模型、从 llama.cpp 官方发布页下载运行时，合计约 5.94 GB。支持续传，已有完整文件会跳过。\n保存到：\(controller.modelHome)")
+        }
         .task { await store.checkModels() }
     }
     private func status(_ name: String, ready: Bool) -> some View {

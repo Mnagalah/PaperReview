@@ -1,0 +1,14 @@
+作文批阅 0.1.0
+
+1. 将 PaperReview.app 拖到“应用程序”，双击打开。
+2. 打开“模型设置”，点击“下载模型”，确认约 5.94 GB 下载。
+3. 下载完成后点击“启动模型”，三个服务就绪后导入作业。
+
+需要 Apple Silicon Mac，最低目标 macOS 14，建议 24 GB 内存。
+模型默认保存在 ~/Library/Application Support/PaperReview/Models/。
+照片和转写只在本机处理。
+
+当前使用开发签名，尚未公证。若 macOS 阻止首次打开，请在确认下载来源后，
+前往“系统设置 → 隐私与安全性”自行批准打开。
+
+项目与问题反馈：https://github.com/Mnagalah/PaperReview
