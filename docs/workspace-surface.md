@@ -1,6 +1,6 @@
 # 对照批阅工作台
 
-模式：Operate；SwiftUI + AppKit 原生实现。用户指定 Codex 式中性灰，并以 Lightroom 为工作区结构参考；不引入摄影功能或装饰性科技效果。
+SwiftUI + AppKit 原生工作区。采用中性灰配色，参考 Lightroom 的三栏布局。
 
 ## 方向
 
@@ -15,10 +15,10 @@
 - 右侧：60pt标题行内放标题、完整的“N 条建议”和独立更多按钮；批注先显示原词→建议，再给中文依据。
 - 左右侧栏可隐藏，保留快捷键和原生分隔条；所有既有功能不因重排而消失。
 
-正文统一自然18pt，每页统一左边界，保留物理换行。共同画布宽度不足时横向滚动，不拉伸字形；三种模式共享平移/缩放。滑动对照是同画布行级比较，不承诺逐字像素重合。
+正文统一自然18pt，每页统一左边界，保留物理换行。共同画布宽度不足时横向滚动，不拉伸字形；三种模式共享平移/缩放。滑动模式按行对照。
 
 ## 参考与证据
 
-[Lightroom工作区基础](https://helpx.adobe.com/lightroom-classic/desktop/workspace/workspace-basics.html)提供来源面板、中央工作区及可收起工具面板的结构参考。具体颜色、标题、动作与对照语义以本项目用户决定为准。
+[Lightroom工作区基础](https://helpx.adobe.com/lightroom-classic/desktop/workspace/workspace-basics.html)提供来源面板、中央工作区及可收起工具面板的结构参考。颜色、标题和操作见本项目设计规范。
 
-当前实现规范在 `DESIGN.md`，界面与模型验收分开记录在 `verification/workspace-review-20261104.md`。旧版“跟随系统为默认、系统蓝选择色、NavigationSplitView”的方向已被本轮决定替代。
+[设计规范](../DESIGN.md) · [测试记录](verification/workspace-review-20261104.md)
