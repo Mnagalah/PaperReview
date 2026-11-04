@@ -1,0 +1,86 @@
+[
+  {
+    "name": "same_page",
+    "source": "/tmp/PaperReview-QA-v2-20261103/4E504A42-DBEB-4988-A24E-13E4E099E8DC/enhanced.png",
+    "seconds": 4.892742125026416,
+    "model_file": "MiniCPM-OCR-1_0-F16.gguf",
+    "response": {
+      "choices": [
+        {
+          "finish_reason": "stop",
+          "index": 0,
+          "message": {
+            "role": "assistant",
+            "content": "A Day at the Park\nLast Sunday, I goed to the park with my freind.\nThe weather were sunny and warm. We plays football for two hour. My sister don't like sports, so she read a book under a tree.\nAfter lunch, we see a beautiful bird near the lake. I was very exciting. We taked many photos and returned home at five o'clock. It was a happy day."
+          }
+        }
+      ],
+      "created": 1793691147,
+      "model": "minicpm-ocr",
+      "system_fingerprint": "b11960-8642541b2",
+      "object": "chat.completion",
+      "usage": {
+        "completion_tokens": 89,
+        "prompt_tokens": 1289,
+        "total_tokens": 1378,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "id": "chatcmpl-d69R4yMlCToQvemDcJWH3I37wHB1saNg",
+      "timings": {
+        "cache_n": 0,
+        "prompt_n": 1289,
+        "prompt_ms": 3033.615,
+        "prompt_per_token_ms": 2.353463925523662,
+        "prompt_per_second": 424.9055994251084,
+        "predicted_n": 89,
+        "predicted_ms": 1800.806,
+        "predicted_per_token_ms": 20.463704545454547,
+        "predicted_per_second": 48.86700732894048
+      }
+    }
+  },
+  {
+    "name": "same_word",
+    "source": "docs/verification/word-original.png",
+    "seconds": 0.734209166985238,
+    "model_file": "MiniCPM-OCR-1_0-F16.gguf",
+    "response": {
+      "choices": [
+        {
+          "finish_reason": "stop",
+          "index": 0,
+          "message": {
+            "role": "assistant",
+            "content": "beautifull"
+          }
+        }
+      ],
+      "created": 1793691148,
+      "model": "minicpm-ocr",
+      "system_fingerprint": "b11960-8642541b2",
+      "object": "chat.completion",
+      "usage": {
+        "completion_tokens": 5,
+        "prompt_tokens": 280,
+        "total_tokens": 285,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "id": "chatcmpl-zwnk3fScddaK1RcTpvdm0uW92Er955OO",
+      "timings": {
+        "cache_n": 0,
+        "prompt_n": 280,
+        "prompt_ms": 620.853,
+        "prompt_per_token_ms": 2.217332142857143,
+        "prompt_per_second": 450.99242493794833,
+        "predicted_n": 5,
+        "predicted_ms": 75.021,
+        "predicted_per_token_ms": 18.75525,
+        "predicted_per_second": 53.31840418016289
+      }
+    }
+  }
+]

@@ -1,0 +1,446 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-04T09:16:22.084456+00:00",
+  "title": "Design System: 作文批阅",
+  "extensions": {
+    "colorMeta": {
+      "accent-selection": {
+        "role": "primary",
+        "displayName": "系统选择色",
+        "nativeSource": "WorkspaceStyle.actionColor / selectionColor",
+        "tonalRamp": [
+          "oklch(15% 0 0)",
+          "oklch(26% 0 0)",
+          "oklch(38% 0 0)",
+          "oklch(50% 0 0)",
+          "oklch(62% 0 0)",
+          "oklch(74% 0 0)",
+          "oklch(86% 0 0)",
+          "oklch(95% 0 0)"
+        ]
+      },
+      "selection-photo-wash": {
+        "role": "primary",
+        "displayName": "照片选择浅底",
+        "nativeSource": "WorkspaceStyle.photoFocusColor.withAlphaComponent(0.10)",
+        "tonalRamp": [
+          "oklch(15% 0 0)",
+          "oklch(26% 0 0)",
+          "oklch(38% 0 0)",
+          "oklch(50% 0 0)",
+          "oklch(62% 0 0)",
+          "oklch(74% 0 0)",
+          "oklch(86% 0 0)",
+          "oklch(95% 0 0)"
+        ]
+      },
+      "selection-text-wash": {
+        "role": "primary",
+        "displayName": "文字选择浅底",
+        "nativeSource": "WorkspaceStyle.selectionColor.withAlphaComponent(0.50)",
+        "tonalRamp": [
+          "oklch(15% 0 0)",
+          "oklch(26% 0 0)",
+          "oklch(38% 0 0)",
+          "oklch(50% 0 0)",
+          "oklch(62% 0 0)",
+          "oklch(74% 0 0)",
+          "oklch(86% 0 0)",
+          "oklch(95% 0 0)"
+        ]
+      },
+      "page-ground": {
+        "role": "neutral",
+        "displayName": "文档底",
+        "nativeSource": "WorkspaceStyle.pageColor; light gray=1.0, dark gray=0.135",
+        "tonalRamp": [
+          "oklch(15% 0 0)",
+          "oklch(26% 0 0)",
+          "oklch(38% 0 0)",
+          "oklch(50% 0 0)",
+          "oklch(62% 0 0)",
+          "oklch(74% 0 0)",
+          "oklch(86% 0 0)",
+          "oklch(95% 0 0)"
+        ]
+      },
+      "page-ink": {
+        "role": "neutral",
+        "displayName": "文档墨色",
+        "nativeSource": "NSColor.textColor",
+        "tonalRamp": [
+          "oklch(15% 0 0)",
+          "oklch(26% 0 0)",
+          "oklch(38% 0 0)",
+          "oklch(50% 0 0)",
+          "oklch(62% 0 0)",
+          "oklch(74% 0 0)",
+          "oklch(86% 0 0)",
+          "oklch(95% 0 0)"
+        ]
+      },
+      "ambiguity-photo": {
+        "role": "neutral",
+        "displayName": "识别疑义紫",
+        "nativeSource": "NSColor.systemPurple, photo fill 0.10 / dotted stroke 0.80",
+        "tonalRamp": [
+          "oklch(15% 0 0)",
+          "oklch(26% 0 0)",
+          "oklch(38% 0 0)",
+          "oklch(50% 0 0)",
+          "oklch(62% 0 0)",
+          "oklch(74% 0 0)",
+          "oklch(86% 0 0)",
+          "oklch(95% 0 0)"
+        ]
+      },
+      "canvas": {
+        "role": "neutral",
+        "displayName": "canvas",
+        "nativeSource": "WorkspaceStyle.canvasColor; calibratedWhite light=0.94, dark=0.105"
+      },
+      "panel": {
+        "role": "neutral",
+        "displayName": "panel",
+        "nativeSource": "WorkspaceStyle.panelColor; calibratedWhite light=0.975, dark=0.12"
+      },
+      "sidebar": {
+        "role": "neutral",
+        "displayName": "sidebar",
+        "nativeSource": "WorkspaceStyle.sidebarColor; calibratedWhite light=0.965, dark=0.09"
+      }
+    },
+    "typographyMeta": {
+      "transcript": {
+        "displayName": "阅读原文",
+        "purpose": "AppKit 自然字形与共同页面缩放。",
+        "nativeSource": "NSFont.systemFont(ofSize: 18 * zoom)"
+      },
+      "label": {
+        "displayName": "工作区标签",
+        "purpose": "原生控件及默认、callout、caption 文本样式，不固定系统样式字号。",
+        "nativeSource": "SwiftUI default / .callout / .caption / .caption2"
+      },
+      "headline": {
+        "displayName": "检查器标题",
+        "purpose": "检查器和状态标题。",
+        "nativeSource": "SwiftUI .headline"
+      },
+      "editor": {
+        "displayName": "Markdown 编辑",
+        "purpose": "仅用于可选原文编辑 sheet。",
+        "nativeSource": ".font(.system(size: 16, design: .monospaced))"
+      }
+    },
+    "shadows": [],
+    "motion": [
+      {
+        "name": "inspector-selection-scroll",
+        "value": "ease-out 0.18s",
+        "purpose": "选中批注时，将对应检查器条目滚动到可见区域。",
+        "nativeSource": "withAnimation(reduceMotion ? nil : .easeOut(duration: 0.18)); proxy.scrollTo(value, anchor: .center)"
+      }
+    ],
+    "breakpoints": [],
+    "native": {
+      "platform": "macos",
+      "frameworks": [
+        "SwiftUI",
+        "AppKit"
+      ],
+      "unit": "pt",
+      "appearance": "Default dark; WorkspaceAppearance.system follows macOS. Neutral grayscale app shell; photographs retain their paper ground.",
+      "semanticColorExport": "Grayscale swatches summarize WorkspaceStyle dynamic NSColors. Native code is authoritative; red/orange/purple keep their separate annotation meanings.",
+      "colorRules": {
+        "spelling": {
+          "nativeSource": "NSColor.systemRed.withAlphaComponent(0.23) / Color.red",
+          "treatment": "原文范围浅底与实线下划线；检查器分类标签和图标。"
+        },
+        "grammar": {
+          "nativeSource": "NSColor.systemOrange.withAlphaComponent(0.25) / Color.orange",
+          "treatment": "原文范围浅底与实线下划线；检查器分类标签和图标。"
+        },
+        "transcript-ambiguity": {
+          "nativeSource": "NSColor.systemPurple, fill 0.14 / dotted underline; controlled by 疑义标记",
+          "treatment": "独立识别分歧的词级虚线。"
+        },
+        "secondary-text": {
+          "nativeSource": "SwiftUI .secondary / .tertiary",
+          "treatment": "辅助信息，不另造固定灰阶。"
+        },
+        "recovery": {
+          "nativeSource": "Color.orange.opacity(0.07) / .foregroundStyle(.orange)",
+          "treatment": "受影响处理阶段的恢复提示。"
+        },
+        "model-ready": {
+          "nativeSource": "Color.green",
+          "treatment": "模型设置的就绪文字与状态图标。"
+        }
+      },
+      "layout": {
+        "window": {
+          "minimum": {
+            "width": 1120,
+            "height": 680
+          },
+          "initial": {
+            "width": 1480,
+            "height": 920
+          }
+        },
+        "sidebar": {
+          "minimumWidth": 190,
+          "maximumWidth": 280,
+          "style": "HSplitView + List.sidebar",
+          "importLocation": "Above assignment list; native bordered button",
+          "idealWidth": 225
+        },
+        "inspector": {
+          "minimumWidth": 280,
+          "idealWidth": 315,
+          "maximumWidth": 390,
+          "style": "HSplitView right tool panel"
+        },
+        "pairedViewport": {
+          "persistentPaneCount": 2,
+          "equalWidth": true,
+          "nativeSource": "PairedScrollView.layout()",
+          "scrollSynchronization": "左右 NSClipView bounds.origin 双向同步，包含水平与垂直。",
+          "documentWidth": "max(paneWidth * zoom, transcriptRequiredWidth)",
+          "documentHeight": "max(photoPageHeight, transcriptRequiredHeight)"
+        },
+        "zoom": {
+          "minimum": 0.75,
+          "maximum": 2.0,
+          "reset": 1.0,
+          "gesture": "NSMagnificationGestureRecognizer; shared cursor-anchored zoom"
+        },
+        "transcriptFlow": {
+          "nativeSource": "TranscriptPageView.lineLayouts(width:pageHeight:)",
+          "linePosition": "Common median body left edge per page; source y with non-overlap; independent flow per reading region",
+          "lineHeight": "Natural AppKit measurement at shared width; physical rows do not gain extra wrapping",
+          "paragraphLineSpacing": "font.pointSize * 0.18",
+          "followingLineGap": "8 * zoom",
+          "trailingInset": "22 * zoom",
+          "lineWidth": "Complete physical row; shared canvas expands and pans instead of wrapping"
+        },
+        "wordFocus": {
+          "priority": "Intersecting word ranges first; source-line fallback only when no word rectangle is available, transcript.isAligned is true, and that line.hasGeometry is true. Never infer a line rectangle when alignment or reliable line geometry is missing.",
+          "outset": 3,
+          "nativeSource": "SourcePageView.draw(_:)",
+          "geometrySource": "DisplayLine.geometryAvailable / hasGeometry; sourceRowID maps transcript body lines back to detected source rows.",
+          "unknownPrefix": "Undetected titles and other unknown prefixes remain in the transcript without borrowing the first handwriting row coordinates or drawing a photo rectangle.",
+          "partialAlignment": "Transcript.isFullyAligned distinguishes complete from partial line geometry. “部分未对齐” means some lines lack geometry; source tracing uses only the available body coordinates."
+        },
+        "comparisonModes": [
+          "sideBySide",
+          "stacked",
+          "wipe"
+        ],
+        "modePicker": "Stage strip, far right",
+        "panelHeaderHeight": 60,
+        "windowTitle": "作业批改 — original imported filename, extension retained; no job: 作业批改",
+        "panelToggleShortcuts": {
+          "sidebar": "command-option-s",
+          "inspector": "command-option-i"
+        },
+        "reviewHeader": "16pt title; 13pt N 条建议; independent 28x28 ellipsis.circle without menu chevron",
+        "reviewRows": "Source order; 16pt quote → suggestion; 14pt explanation; stacked fallback for long phrases; dismissed text stays readable."
+      },
+      "interaction": {
+        "importShortcut": "Command-O",
+        "inspectorShortcut": "Command-Option-I",
+        "controlStates": "系统控件处理 hover、focus、pressed、disabled；控件状态不另写装饰动画。",
+        "editing": "编辑可选；保存后重新审核，不阻挡自动继续。",
+        "annotation": "不改写原文；忽略可恢复；点击词区或对应文字批注定位。",
+        "reviewUnadopted": {
+          "nativeSource": "ReviewInspector.unadoptedDetails(_:) / IssueAnchoring.anchor(_:to:recoverUniqueOccurrence:recoverUniqueLine:)",
+          "entry": "次要色链接“N 条建议未采用”；N = rejectedIssues + deferredReviewIssues.count。",
+          "details": "原生 popover 逐条展示当前定位检查的拒绝原因与保存的原提议；OCR 分歧项单列。",
+          "reasonTitles": [
+            "模型没有引用原词",
+            "原词出现次数无效",
+            "模型给出的出现次数超出实际数量",
+            "修改前后相同",
+            "建议混入了行号",
+            "缺少修改原因",
+            "模型给出的行号不存在",
+            "引用与该行识别文本不一致",
+            "词区识别仍有分歧，暂不批注"
+          ],
+          "legacyMissingDetails": "这条旧记录只保存了数量，没有保存具体原因。重新审核后可查看详情。",
+          "uniqueLiteralRepair": "行内只有一个逐字一致匹配时，可修复超出范围的出现次数；全文只有一个逐字一致匹配且位于另一行时，可修复错误行号。原词引用为空、出现次数非正数、建议前后相同等检查仍保留。",
+          "historicalRecovery": "保存了提议且存在可恢复项时显示“重新定位 N 条建议”，只匹配现有转写与保存结果，不调用模型。",
+          "modelBoundary": "建议内容和理由仍来自 MiniCPM5-2B；重新定位只修复引用索引，不重新生成语义判断。",
+          "popover": {
+            "width": 380,
+            "maximumListHeight": 320
+          }
+        },
+        "assignmentDeletion": "Sidebar context menu or Delete key; confirm then system Trash; imported source unchanged; active/loading work disabled",
+        "jevDetails": "Popover on the Jev stage; scores, historical scan version, retry",
+        "readabilityWarning": "One line above comparison canvases; complete word-image evidence with page signals; edit becomes 核对原文 for difficult homework; normal homework stays automatic, no grade"
+      },
+      "rendererBoundary": {
+        "nativeSource": "Sources/PaperReview/Services/TranscriptRenderer.swift",
+        "screenRenderer": "TextDrawing + TranscriptPageView",
+        "scoringRenderer": "TranscriptRenderer native-plain-flow-v3 / word-ink-height-v1",
+        "contract": "Jev 固定白底候选图与界面缩放、对齐和批注分离；其固定字体不进入 UI 字体层级。"
+      },
+      "previewPolicy": "components 的 HTML/CSS 仅为面板内原生角色与几何关系的自包含示意，使用合成占位文字。系统材质、控件轮廓、红橙动态颜色与交互由 macOS 实现；不要把预览 CSS 复制为原生设计令牌。预览以 1px 表示一个逻辑 pt。",
+      "rampPolicy": "tonalRamp 为面板色阶示意，不新增原生颜色令牌；选择色使用 relative OKLCH 保持当前色相，近黑与近白降低色度。",
+      "evidence": {
+        "basis": "Current source extraction",
+        "visualReviewRecord": "docs/verification/native-finish-review.md",
+        "scope": "此 sidecar 未执行 UI、浏览器、模型质量或全尺寸验证。"
+      },
+      "sources": [
+        "Sources/PaperReview/App/PaperReviewApp.swift",
+        "Sources/PaperReview/Views/ContentView.swift",
+        "Sources/PaperReview/Views/ComparisonView.swift",
+        "Sources/PaperReview/Views/PairedDocumentView.swift",
+        "Sources/PaperReview/Views/AlignedTranscriptView.swift",
+        "Sources/PaperReview/Views/ReviewInspector.swift",
+        "Sources/PaperReview/Views/StageStrip.swift",
+        "Sources/PaperReview/Views/TranscriptEditor.swift",
+        "Sources/PaperReview/Views/ModelSettingsView.swift",
+        "Sources/PaperReview/Services/TranscriptRenderer.swift",
+        "Sources/PaperReview/Services/PhotoProcessor.swift",
+        "Sources/PaperReviewCore/Domain.swift",
+        "Sources/PaperReviewCore/ModelClient.swift",
+        "Sources/PaperReview/Stores/WorkspaceStore.swift",
+        "Sources/PaperReview/Models/Assignment.swift"
+      ]
+    }
+  },
+  "components": [
+    {
+      "name": "导入主动作",
+      "kind": "button",
+      "refersTo": "button-import",
+      "description": "作业列表上方的系统 bordered 导入按钮；菜单⌘O和拖入保留，空画布不重复按钮。",
+      "html": "<button class=\"ds-button ds-import\">导入照片…</button>",
+      "css": ".ds-button{appearance:auto;font:menu;color:ButtonText}.ds-button:hover{cursor:default}.ds-button:focus-visible{outline:auto}.ds-button:active{color:ButtonText}.ds-button:disabled{color:GrayText}.ds-import,.ds-import:hover,.ds-import:active{background:ButtonFace;color:ButtonText}.ds-import:disabled{background:ButtonFace;color:GrayText}"
+    },
+    {
+      "name": "原生次要动作",
+      "kind": "button",
+      "refersTo": "button-standard",
+      "description": "编辑、继续、重试及设置动作使用系统按钮与禁用态。",
+      "html": "<button class=\"ds-button\">编辑原文</button> <button class=\"ds-button\" disabled>导出</button>",
+      "css": ".ds-button{appearance:auto;font:menu;color:ButtonText}.ds-button:hover{cursor:default}.ds-button:focus-visible{outline:auto}.ds-button:active{color:ButtonText}.ds-button:disabled{color:GrayText}"
+    },
+    {
+      "name": "模型设置输入框",
+      "kind": "input",
+      "refersTo": "settings-field",
+      "description": "高级设置内的系统 TextField；示例仅展示字段样式。",
+      "html": "<label class=\"ds-field-label\">模型目录 <input class=\"ds-field\" type=\"text\" value=\"示例目录\" aria-label=\"模型目录\"></label>",
+      "css": ".ds-field-label{display:grid;gap:8px;font:menu;color:CanvasText}.ds-field{appearance:auto;font:menu;color:FieldText;background:Field}.ds-field:hover{cursor:text}.ds-field:focus-visible{outline:auto}.ds-field:disabled{color:GrayText}"
+    },
+    {
+      "name": "作业 source-list",
+      "kind": "nav",
+      "refersTo": "sidebar-navigation",
+      "description": "HSplitView左侧原生source-list；上方导入，底部模型状态；右键/删除键移到废纸篓，可独立隐藏。",
+      "html": "<nav class=\"ds-sidebar\" aria-label=\"作业\"><div class=\"ds-section\">作业 · 1</div><button class=\"ds-row\" aria-current=\"page\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" fill=\"none\" aria-hidden=\"true\"><path d=\"M4 1.5h5l3 3v10H4zM9 1.5v3h3M6 7h4M6 9h4M6 11h3\" stroke=\"currentColor\" stroke-linejoin=\"round\"/></svg><span>示例作业<small>已完成</small></span></button></nav>",
+      "css": ".ds-sidebar{width:225px;font:menu;color:CanvasText}.ds-section{padding:8px;color:GrayText;font-weight:600}.ds-row{display:flex;align-items:center;gap:8px;width:100%;text-align:left;font:menu;border:0;padding:6px 8px;background:SelectedItem;color:SelectedItemText}.ds-row small{display:block;margin-top:3px;font-size:.85em;opacity:.75}.ds-row:hover{cursor:default}.ds-row:focus-visible{outline:auto}.ds-row:active{background:SelectedItem}"
+    },
+    {
+      "name": "照片显示选择器",
+      "kind": "custom",
+      "refersTo": "photo-picker",
+      "description": "扫描增强与处理后原色页；完整原片另有入口。",
+      "html": "<fieldset class=\"ds-picker\" aria-label=\"照片显示\"><label><input type=\"radio\" name=\"ds-photo-mode\" checked>扫描增强</label><label><input type=\"radio\" name=\"ds-photo-mode\">原色</label></fieldset>",
+      "css": ".ds-picker{display:flex;width:145px;margin:0;border:0;padding:0;gap:8px;font:menu;color:CanvasText}.ds-picker label{display:flex;align-items:center;gap:3px;white-space:nowrap}.ds-picker input{appearance:auto;accent-color:#888888}.ds-picker label:hover{cursor:default}.ds-picker input:focus-visible{outline:auto}.ds-picker input:active{accent-color:#888888}"
+    },
+    {
+      "name": "阶段条",
+      "kind": "custom",
+      "refersTo": "stage-strip",
+      "description": "原生阶段状态；Jev可点开详情，最右侧为三种对照布局切换。",
+      "html": "<div class=\"ds-stage-strip\" aria-label=\"处理进度\"><span class=\"ds-done\">✓ 照片</span><span class=\"ds-chevron\">›</span><span>✓ 转写</span><span class=\"ds-chevron\">›</span><span class=\"ds-current\" aria-current=\"step\">◌ Jev 复核</span><span class=\"ds-chevron\">›</span><span>○ 基础审核</span></div>",
+      "css": ".ds-stage-strip{display:flex;align-items:center;gap:20px;padding:16px 22px;font:menu;color:CanvasText}.ds-done{color:#888888}.ds-current{font-weight:600}.ds-chevron{color:GrayText}.ds-stage-strip>span{white-space:nowrap}"
+    },
+    {
+      "name": "左右固定文档视口",
+      "kind": "custom",
+      "refersTo": "paired-document",
+      "description": "只读几何示意：照片词区与自然字形；非照片、非模型输出。",
+      "html": "<div class=\"ds-pair\"><div class=\"ds-page ds-photo\" aria-label=\"合成照片占位\"><div class=\"ds-photo-label\">照片占位</div><span class=\"ds-source-word\">示例词区</span></div><div class=\"ds-page ds-transcript\" aria-label=\"合成转写示例\"><p><span class=\"ds-uncertain\">Sample</span> text.</p></div></div>",
+      "css": ".ds-pair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px;padding:22px}.ds-page{min-width:0;min-height:180px;overflow:auto;background:Field;color:FieldText}.ds-photo-label{font:menu;color:GrayText;margin:12px}.ds-source-word{display:inline-block;margin:14px 12px;padding:3px;border:1px solid #888888;border-radius:3px;background:color-mix(in srgb,#888888 10%,transparent);font:menu}.ds-transcript p{font:400 18px system-ui;white-space:pre;overflow-wrap:normal;margin:38px 12px 0}.ds-uncertain{text-decoration-line:underline;text-decoration-style:dotted;text-decoration-color:GrayText}"
+    },
+    {
+      "name": "审核批注与未采用详情",
+      "kind": "custom",
+      "refersTo": "review-issue",
+      "description": "右栏单一标题行放建议总数和独立更多菜单；按原文排序，16pt原词→建议，14pt依据；未采用项可打开详情。",
+      "html": "<button class=\"ds-unadopted\" popovertarget=\"ds-unadopted-details\">3 条建议未采用</button><article class=\"ds-issue\"><header><span class=\"ds-kind\">语法</span><span class=\"ds-line\">L1</span></header><button class=\"ds-target\"><strong>合成原文引用</strong><span>↳ 合成修改建议</span><small>批注解释显示在这里。</small></button><footer><button class=\"ds-dismiss\">忽略</button></footer></article><section class=\"ds-unadopted-details\" id=\"ds-unadopted-details\" popover><h3>未采用的建议</h3><div class=\"ds-rejected-list\"><div><strong>模型给出的行号不存在</strong><p>合成原词引用 → 合成建议</p><small>模型指定第 99 行，第 1 次出现。</small></div><div><strong>修改前后相同</strong><p>Sample → Sample</p></div><div><strong>词区识别仍有分歧，暂不批注</strong><p>合成分歧词 → 合成建议</p></div></div><button class=\"ds-reanchor\">重新定位 1 条建议</button> <button class=\"ds-reanchor\">重新审核</button></section>",
+      "css": ".ds-issue{padding:19px 22px;background:color-mix(in srgb,#888888 8%,transparent);color:CanvasText;font:menu}.ds-issue header{display:flex;justify-content:space-between;font-size:.85em}.ds-kind{color:orange}.ds-line{color:GrayText}.ds-target{appearance:none;display:grid;gap:8px;width:100%;border:0;background:transparent;color:inherit;text-align:left;font:menu;padding:9px 0}.ds-target small{color:GrayText;font-size:.95em}.ds-target:hover{cursor:default}.ds-target:focus-visible{outline:auto}.ds-target:active{background:color-mix(in srgb,#888888 8%,transparent)}.ds-issue footer{text-align:right}.ds-dismiss{appearance:none;border:0;background:transparent;color:LinkText;font:menu}.ds-dismiss:hover{text-decoration:underline}.ds-dismiss:focus-visible{outline:auto}.ds-dismiss:active{color:LinkText}.ds-unadopted{appearance:none;display:block;border:0;background:transparent;color:GrayText;font:menu;margin:0 20px 12px;padding:0;text-align:left}.ds-unadopted:hover{text-decoration:underline}.ds-unadopted:focus-visible{outline:auto}.ds-unadopted:active{color:GrayText}.ds-unadopted-details{width:380px;max-width:calc(100vw - 48px);padding:20px;background:Canvas;color:CanvasText;font:menu}.ds-unadopted-details h3{margin:0 0 14px;font:menu;font-weight:600}.ds-rejected-list{display:grid;gap:16px;max-height:320px;overflow:auto;margin-bottom:14px}.ds-rejected-list p{margin:6px 0}.ds-rejected-list small{color:GrayText}.ds-reanchor{appearance:auto;font:menu}.ds-reanchor:hover{cursor:default}.ds-reanchor:focus-visible{outline:auto}.ds-reanchor:active{color:ButtonText}"
+    },
+    {
+      "name": "可选原文编辑器",
+      "kind": "input",
+      "refersTo": "transcript-editor",
+      "description": "sheet 中的等宽 Markdown 输入；不作为继续审核门槛。",
+      "html": "<textarea class=\"ds-editor\" rows=\"5\" aria-label=\"忠实原文 Markdown\">Synthetic sample text.</textarea>",
+      "css": ".ds-editor{appearance:auto;width:100%;padding:6px;font:16px ui-monospace,monospace;color:FieldText;background:Field}.ds-editor:hover{cursor:text}.ds-editor:focus-visible{outline:auto}.ds-editor:disabled{color:GrayText}"
+    }
+  ],
+  "narrative": {
+    "northStar": "老师的对照批阅台",
+    "overview": "中性灰的原生macOS三栏工作台：左侧作业来源、中央照片/转写、右侧基础审核。共享紧凑标题栏与60pt面板标题行。布局承担解释，减少重复标签。",
+    "keyCharacteristics": [
+      "默认深色、可跟随系统；中性灰而非蓝色科技外壳。",
+      "Lightroom式来源/画布/工具三栏，功能保留。",
+      "自然18pt、物理换行、每页统一左边界；同步平移与缩放。",
+      "识别疑义、语言错误、当前选择分别表达。"
+    ],
+    "rules": [
+      {
+        "name": "The Separate Signals Rule",
+        "body": "紫色词级浅底/点线表示可关闭的识别疑义；红/橙表示语言错误，中性灰表示当前选择。",
+        "section": "colors"
+      },
+      {
+        "name": "The Paper Is Content Rule",
+        "body": "扫描增强将照片变为去阴影的白纸灰度内容，不把整个应用改成浅色，也不对照片随深色外观反相。",
+        "section": "colors"
+      },
+      {
+        "name": "The Natural Glyph Rule",
+        "body": "统一自然字号、每页统一正文左边界，保留物理换行与大致纵向位置；宽度不足展开共同画布并同步横滚，不额外拆行或拉伸字形。",
+        "section": "typography"
+      },
+      {
+        "name": "The Shared Coordinates Rule",
+        "body": "左右/上下保留两个视口；滑动模式共用一幅画布。所有模式同步平移/缩放，不改写原文和批注。",
+        "section": "layout"
+      },
+      {
+        "name": "The Native Depth Rule",
+        "body": "系统界面层使用原生材料与呈现方式；文档内部保持平面，不为制造层级添加装饰性阴影。",
+        "section": "elevation"
+      },
+      {
+        "name": "The Word First Rule",
+        "body": "选中批注时，照片先框出与批注原文范围相交的词区；没有可用词区时，只有转写已对齐且该行有可靠几何（`transcript.isAligned && line.hasGeometry`）才回退到该行。未对齐或该行无几何时不推测行框。转写点击优先命中具体批注，其他点击保留行级定位。",
+        "section": "components"
+      }
+    ],
+    "dos": [
+      "沿用原生控件与SF Symbols，默认深色并提供跟随系统。",
+      "保留完整物理行，窄视口扩展共同画布并同步横向滚动。",
+      "让原词→建议先被看见，再给中文依据。",
+      "保留导入、删除、编辑、复制、导出、重试与三种对照。"
+    ],
+    "donts": [
+      "**Don't** 将学生原文改写为建议文本，或把人工编辑设成继续审核的门槛。",
+      "**Don't** 根据手写框逐行拉伸、压缩字形，或用缩小字号解决重叠。",
+      "**Don't** 在有可靠词定位时用整行框代替选中词区，或在转写未对齐、该行无可靠几何时猜测行框。",
+      "**Don't** 用常驻整段橙色表达识别歧义，或把 Jev 数值包装成作文分数。",
+      "**Don't** 为白纸扫描效果固定应用浅色主题，或将照片随系统深色外观反相。",
+      "**Don't** 另造网页式卡片、装饰阴影、品牌字体或重复说明标签。"
+    ]
+  }
+}

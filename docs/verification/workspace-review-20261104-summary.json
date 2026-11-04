@@ -1,0 +1,80 @@
+{
+  "date": "2026-11-04",
+  "models": {
+    "ocr": "MiniCPM-OCR-1_0-F16",
+    "jev": "MiniCPM-OCR-Jev-Q4_K_M",
+    "review": "MiniCPM5-2B-Q4_K_M"
+  },
+  "scope": "Normal-essay spelling and obvious past-tense recall, source-preserving annotations; not general semantic acceptance.",
+  "review_cases": [
+    {
+      "name": "handwriting",
+      "seconds": 29.552,
+      "expected_error_occurrences": 12,
+      "found": 12,
+      "missing": [],
+      "source_changed": false,
+      "stage_seconds": {
+        "context": 11.407,
+        "draft": 2.159,
+        "grammar": 2.068,
+        "spelling_clues": 0.157,
+        "validation": 13.753
+      }
+    },
+    {
+      "name": "unseen-narrative",
+      "seconds": 26.347,
+      "expected_error_occurrences": 6,
+      "found": 6,
+      "missing": [],
+      "source_changed": false,
+      "stage_seconds": {
+        "context": 10.887,
+        "draft": 1.652,
+        "grammar": 1.262,
+        "spelling_clues": 0.027,
+        "validation": 12.519
+      }
+    },
+    {
+      "name": "valid-time-shifts",
+      "seconds": 16.072,
+      "expected_error_occurrences": 0,
+      "found": 0,
+      "missing": [],
+      "source_changed": false,
+      "stage_seconds": {
+        "context": 12.241,
+        "draft": 2.043,
+        "grammar": 1.786,
+        "spelling_clues": 0.001
+      }
+    }
+  ],
+  "semantic8": {
+    "seconds": 30.658,
+    "expected_errors": 4,
+    "found_expected": 2,
+    "misses": [
+      "accept → except",
+      "since → for"
+    ],
+    "correct_control_lines_modified": 0,
+    "status": "failed"
+  },
+  "verification_negative_edits": {
+    "proposed_inappropriate_edits": 6,
+    "rejected": 6,
+    "source": "local bounded action-verification probe"
+  },
+  "privacy": "No student photograph, full student transcript, machine-specific path, raw model reasoning or session log in this summary.",
+  "native_review": {
+    "issues": 12,
+    "deferred": 0,
+    "rejected": 0,
+    "seconds": 32.809,
+    "source_unchanged": true,
+    "human_confirmed": false
+  }
+}

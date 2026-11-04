@@ -1,0 +1,13 @@
+.build/
+dist/
+.local-models/
+models/
+.DS_Store
+*.xcuserstate
+__pycache__/
+*.py[cod]
+*.log
+.impeccable/questions/
+
+# User-provided test photographs and private runtime evidence
+.local-tests/

@@ -1,0 +1,12 @@
+{
+  "recorded_from": "Actual first classify_existing.py exception captured by exec_command",
+  "input_result_file": "nothink-essay-result.json",
+  "validation_failure": "Non-Chinese explanation",
+  "first_failed_label": {
+    "id": 1,
+    "accept": true,
+    "kind": "spelling",
+    "explanation": "goed is a misspelling of went."
+  },
+  "evidence_scope": "Only this failed label was retained in the exception. The complete model response was not retained. This file is an observation record, not a new inference."
+}

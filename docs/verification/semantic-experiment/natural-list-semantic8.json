@@ -1,0 +1,34 @@
+{
+  "recorded_from": "Actual natural_list.py incomplete-output exception captured by exec_command",
+  "request": {
+    "model": "MiniCPM5-2B",
+    "messages": [
+      {
+        "role": "system",
+        "content": "你是英语老师。逐句检查以下英语文本的语法、用词、拼写、标点和大小写。逐项列出所有明确错误、建议和简短中文理由。不要润色，正确的句子不要修改。"
+      },
+      {
+        "role": "user",
+        "content": "The box of old books are heavy.\nEveryone was there accept Tom.\nPlease accept my apology.\nI have lived here since three years.\nI visited Paris last year. I live in London now.\nIf I were you, I would wait.\nI do not like tea.\nIt was beautifull."
+      }
+    ],
+    "stream": false,
+    "temperature": 0.2,
+    "top_p": 0.95,
+    "min_p": 0.0,
+    "seed": 42,
+    "max_tokens": 4096
+  },
+  "seconds": 84.70346737498767,
+  "content": "",
+  "finish_reason": "length",
+  "usage": {
+    "completion_tokens": 4096,
+    "prompt_tokens": 121,
+    "total_tokens": 4217,
+    "prompt_tokens_details": { "cached_tokens": 6 }
+  },
+  "model": "MiniCPM5-2B",
+  "system_fingerprint": "b11960-8642541b2",
+  "accepted_as_complete": false
+}

@@ -1,0 +1,38 @@
+{
+  "beautiful": {
+    "model": "<project-root>/.local-models/weights/MiniCPM-OCR-Jev-Q4_K_M.gguf",
+    "answers": {
+      "consistency": {
+        "type": "choice",
+        "choice": "0",
+        "probabilities": {
+          "0": 0.9919106653278682,
+          "1": 0.008089334672131757
+        },
+        "confidence": 0.9838213306557364
+      }
+    },
+    "usage": {
+      "input_tokens": 218,
+      "output_tokens": 0
+    }
+  },
+  "beautifull": {
+    "model": "<project-root>/.local-models/weights/MiniCPM-OCR-Jev-Q4_K_M.gguf",
+    "answers": {
+      "consistency": {
+        "type": "choice",
+        "choice": "0",
+        "probabilities": {
+          "0": 0.9912090344381768,
+          "1": 0.008790965561823167
+        },
+        "confidence": 0.9824180688763535
+      }
+    },
+    "usage": {
+      "input_tokens": 221,
+      "output_tokens": 0
+    }
+  }
+}

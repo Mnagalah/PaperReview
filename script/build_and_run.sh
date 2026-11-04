@@ -1,0 +1,91 @@
+#!/bin/bash
+set -euo pipefail
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$ROOT"
+MODE="${1:-run}"
+if [[ $# -gt 0 ]]; then shift; fi
+APP_NAME=PaperReview
+APP_LINK="$ROOT/dist/$APP_NAME.app"
+# File Provider rewrites FinderInfo on .app folders under Documents, invalidating
+# their resource seals. Keep the runnable build in macOS's local developer area;
+# the project's established dist entrypoint remains a link to that same app.
+BUILD_DIR="${PAPERREVIEW_APP_BUILD_DIR:-$HOME/Library/Developer/PaperReview/Build}"
+APP="$BUILD_DIR/$APP_NAME.app"
+case "$MODE" in
+  run|--build-only|--verify|--debug|--logs|--telemetry) ;;
+  *) echo "usage: $0 [run|--build-only|--verify|--debug|--logs|--telemetry] [app arguments]" >&2; exit 2;;
+esac
+check_owner() {
+  local project
+  project="$(/usr/libexec/PlistBuddy -c 'Print :PaperReviewProjectRoot' "$1/Contents/Info.plist" 2>/dev/null || true)"
+  [[ "$project" == "$ROOT" ]] || { echo "构建目录已有其他项目的应用，未覆盖：$1。请设置 PAPERREVIEW_APP_BUILD_DIR。" >&2; exit 1; }
+}
+if [[ -e "$APP" ]]; then check_owner "$APP"; fi
+if [[ -L "$APP_LINK" ]]; then
+  [[ "$(readlink "$APP_LINK")" == "$APP" ]] || { echo "dist应用链接指向其他构建位置，未更改：$APP_LINK" >&2; exit 1; }
+elif [[ -e "$APP_LINK" ]]; then check_owner "$APP_LINK"; fi
+swift build
+BINARY="$(swift build --show-bin-path)/$APP_NAME"
+mkdir -p "$BUILD_DIR"
+STAGE="$(mktemp -d "$BUILD_DIR/.PaperReview.XXXXXX")"
+STAGED_APP="$STAGE/$APP_NAME.app"
+mkdir -p "$STAGED_APP/Contents/MacOS" "$STAGED_APP/Contents/Resources"
+cp "$BINARY" "$STAGED_APP/Contents/MacOS/$APP_NAME"
+chmod 755 "$STAGED_APP/Contents/MacOS/$APP_NAME"
+cp script/start_models.sh script/stop_models.sh "$STAGED_APP/Contents/Resources/"
+/usr/bin/python3 - "$STAGED_APP/Contents/Info.plist" "$ROOT" <<'PY'
+import plistlib,sys
+with open(sys.argv[1], 'wb') as f:
+    plistlib.dump(dict(CFBundleExecutable='PaperReview', CFBundleIdentifier='local.paperreview.mac',
+        CFBundleName='作文批阅', CFBundleDisplayName='作文批阅', CFBundlePackageType='APPL',
+        CFBundleShortVersionString='0.1.0', CFBundleVersion='1', LSMinimumSystemVersion='14.0',
+        NSPrincipalClass='NSApplication', NSHighResolutionCapable=True,
+        NSAppTransportSecurity=dict(NSAllowsLocalNetworking=True), PaperReviewProjectRoot=sys.argv[2]), f)
+PY
+# Validate a fresh bundle before stopping/replacing the usable application.
+# This is local ad-hoc signing, not Developer ID distribution/notarization.
+/usr/bin/codesign --force --sign - --timestamp=none "$STAGED_APP"
+/usr/bin/codesign --verify --deep --strict "$STAGED_APP"
+for pid in $(pgrep -x "$APP_NAME" || true); do
+  command="$(ps -p "$pid" -o command= || true)"
+  if [[ "$command" == "$APP/Contents/MacOS/$APP_NAME"* || "$command" == "$APP_LINK/Contents/MacOS/$APP_NAME"* ]]; then
+    kill -TERM "$pid"
+    for _ in 1 2 3 4 5; do
+      if ! kill -0 "$pid" 2>/dev/null; then break; fi
+      sleep 1
+    done
+    if kill -0 "$pid" 2>/dev/null; then
+      echo '应用仍在退出，未替换。请稍后重试。' >&2; exit 1
+    fi
+  fi
+done
+STAMP="$(date +%Y%m%d-%H%M%S)-$$"
+if [[ -e "$APP" ]]; then
+  mkdir -p "$BUILD_DIR/Previous"
+  mv "$APP" "$BUILD_DIR/Previous/$APP_NAME-$STAMP.app"
+fi
+mv "$STAGED_APP" "$APP"
+rmdir "$STAGE"
+mkdir -p "$ROOT/dist"
+if [[ ! -L "$APP_LINK" ]]; then
+  if [[ -e "$APP_LINK" ]]; then
+    mkdir -p "$ROOT/dist/Previous"
+    mv "$APP_LINK" "$ROOT/dist/Previous/$APP_NAME-$STAMP.app"
+  fi
+  ln -s "$APP" "$APP_LINK"
+fi
+/usr/bin/codesign --verify --deep --strict "$APP"
+case "$MODE" in
+  --build-only) echo "$APP";;
+  run) /usr/bin/open -n "$APP" --args "$@";;
+  --verify)
+    /usr/bin/open -n "$APP" --args "$@"
+    for _ in 1 2 3 4 5; do
+      if ps -axo command= | grep -F -- "$APP/Contents/MacOS/$APP_NAME" | grep -Fvq -- 'grep -F'; then exit 0; fi
+      sleep 1
+    done
+    echo '应用未保持运行，请检查系统崩溃记录。' >&2; exit 1;;
+  --debug) lldb -- "$APP/Contents/MacOS/$APP_NAME" "$@";;
+  --logs) /usr/bin/open -n "$APP" --args "$@"; /usr/bin/log stream --info --style compact --predicate 'process == "PaperReview"';;
+  --telemetry) /usr/bin/open -n "$APP" --args "$@"; /usr/bin/log stream --info --style compact --predicate 'subsystem == "local.paperreview.mac"';;
+esac

@@ -1,0 +1,98 @@
+{
+  "name": "simple-semantic8",
+  "original": "The box of old books are heavy.\nEveryone was there accept Tom.\nPlease accept my apology.\nI have lived here since three years.\nI visited Paris last year. I live in London now.\nIf I were you, I would wait.\nI do not like tea.\nIt was beautifull.",
+  "corrected_candidate": "The box of old books is heavy.\nEveryone was there, accept Tom.\nPlease accept my apology.\nI have lived here since three years.\nI visited Paris last year. I live in London now.\nIf I were you, I would wait.\nI do not like tea.\nIt was beautiful.",
+  "correction_evidence": {
+    "request": {
+      "model": "MiniCPM5-2B",
+      "messages": [
+        {
+          "role": "system",
+          "content": "You are an English teacher. Correct grammar and spelling with the smallest edits. Return only the corrected text."
+        },
+        {
+          "role": "user",
+          "content": "The box of old books are heavy.\nEveryone was there accept Tom.\nPlease accept my apology.\nI have lived here since three years.\nI visited Paris last year. I live in London now.\nIf I were you, I would wait.\nI do not like tea.\nIt was beautifull."
+        }
+      ],
+      "stream": false,
+      "temperature": 0.2,
+      "top_p": 0.95,
+      "min_p": 0.0,
+      "seed": 42,
+      "max_tokens": 4096
+    },
+    "seconds": 60.12738658301532,
+    "content": "The box of old books is heavy.\nEveryone was there, accept Tom.\nPlease accept my apology.\nI have lived here since three years.\nI visited Paris last year. I live in London now.\nIf I were you, I would wait.\nI do not like tea.\nIt was beautiful.",
+    "finish_reason": "stop",
+    "usage": {
+      "completion_tokens": 3064,
+      "prompt_tokens": 97,
+      "total_tokens": 3161,
+      "prompt_tokens_details": {
+        "cached_tokens": 6
+      }
+    },
+    "model": "MiniCPM5-2B",
+    "system_fingerprint": "b11960-8642541b2"
+  },
+  "token_edits": [
+    {
+      "id": 1,
+      "operation": "replace",
+      "line": 1,
+      "quote": "are",
+      "occurrence": 1,
+      "suggestion": "is",
+      "start": 21,
+      "length": 3,
+      "context": "The box of old books are heavy."
+    },
+    {
+      "id": 2,
+      "operation": "insert",
+      "line": 2,
+      "quote": "accept",
+      "occurrence": 1,
+      "suggestion": ", accept",
+      "start": 51,
+      "length": 6,
+      "context": "Everyone was there accept Tom."
+    },
+    {
+      "id": 3,
+      "operation": "replace",
+      "line": 8,
+      "quote": "beautifull",
+      "occurrence": 1,
+      "suggestion": "beautiful",
+      "start": 230,
+      "length": 10,
+      "context": "It was beautifull."
+    }
+  ],
+  "evaluation": {
+    "passed": false,
+    "expected_count": 4,
+    "observed_count": 3,
+    "missing": [
+      [
+        2,
+        "accept",
+        "except"
+      ],
+      [
+        4,
+        "since",
+        "for"
+      ]
+    ],
+    "unexpected": [
+      [
+        2,
+        "accept",
+        ", accept"
+      ]
+    ]
+  }
+}

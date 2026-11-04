@@ -1,0 +1,179 @@
+[
+  {
+    "name": "plain_sentence",
+    "seconds": 1.8975586250016931,
+    "request": {
+      "model": "MiniCPM5-2B",
+      "messages": [
+        {
+          "role": "system",
+          "content": "You are an English teacher. Correct grammar and spelling with the smallest edits. Return only the corrected sentence."
+        },
+        {
+          "role": "user",
+          "content": "Last Sunday, I goed to the park with my freind."
+        }
+      ],
+      "stream": false,
+      "temperature": 0.2,
+      "top_p": 0.95,
+      "min_p": 0,
+      "max_tokens": 2048
+    },
+    "response": {
+      "choices": [
+        {
+          "finish_reason": "stop",
+          "index": 0,
+          "message": {
+            "role": "assistant",
+            "content": "Last Sunday, I went to the park with my friend.",
+            "reasoning_content": "We need to correct grammar and spelling. The sentence: \"Last Sunday, I goed to the park with my freind.\" Issues: \"goed\" should be \"went\", \"freind\" should be \"friend\". Also \"I\" is correct, \"Last Sunday\" is fine. So corrected sentence: \"Last Sunday, I went to the park with my friend.\"\n"
+          }
+        }
+      ],
+      "created": 1793688502,
+      "model": "MiniCPM5-2B",
+      "system_fingerprint": "b11960-8642541b2",
+      "object": "chat.completion",
+      "usage": {
+        "completion_tokens": 92,
+        "prompt_tokens": 51,
+        "total_tokens": 143,
+        "prompt_tokens_details": {
+          "cached_tokens": 5
+        }
+      },
+      "id": "chatcmpl-2oFYPzOJ6N7MP2BvbX8XxAvCJDIMe0Tw",
+      "timings": {
+        "cache_n": 5,
+        "prompt_n": 46,
+        "prompt_ms": 233.584,
+        "prompt_per_token_ms": 5.077913043478261,
+        "prompt_per_second": 196.93129666415507,
+        "predicted_n": 92,
+        "predicted_ms": 1646.192,
+        "predicted_per_token_ms": 18.090021978021976,
+        "predicted_per_second": 55.27909259673234
+      }
+    }
+  },
+  {
+    "name": "simple_chinese",
+    "seconds": 5.5289856669987785,
+    "request": {
+      "model": "MiniCPM5-2B",
+      "messages": [
+        {
+          "role": "system",
+          "content": "你是英语老师。检查语法和拼写，逐项列出原词、建议替换和简短中文原因。不要润色。"
+        },
+        {
+          "role": "user",
+          "content": "A Day at the Park\nLast Sunday, I goed to the park with my freind.\nThe weather were sunny and warm. We plays football\nfor two hour. My sister don't like sports, so she\nread a book under a tree.\nAfter lunch, we see a beautifull bird near the lake.\nI was very exciting. We taked many photos and\nreturned home at five o'clock. It was a happy day."
+        }
+      ],
+      "stream": false,
+      "temperature": 0.2,
+      "top_p": 0.95,
+      "min_p": 0,
+      "max_tokens": 2048
+    },
+    "response": {
+      "choices": [
+        {
+          "finish_reason": "stop",
+          "index": 0,
+          "message": {
+            "role": "assistant",
+            "content": "Here are the corrections for the given text:\n\nOriginal: A Day at the Park\nCorrected: A Day at the Park\n\nOriginal: Last Sunday, I goed to the park with my freind.\nCorrected: Last Sunday, I went to the park with my friend.\n\nOriginal: The weather were sunny and warm.\nCorrected: The weather was sunny and warm.\n\nOriginal: We plays football for two hour.\nCorrected: We played football for two hours.\n\nOriginal: My sister don't like sports, so she read a book under a tree.\nCorrected: My sister doesn't like sports, so she read a book under a tree.\n\nOriginal: After lunch, we see a beautifull bird near the lake.\nCorrected: After lunch, we saw a beautiful bird near the lake.\n\nOriginal: I was very exciting.\nCorrected: I was very excited.\n\nOriginal: We taked many photos and returned home at five o'clock.\nCorrected: We took many photos and returned home at five o'clock.\n\nOriginal: It was a happy day.\nCorrected: It was a happy day.",
+            "reasoning_content": "First, I need to make sure that the user's request is understood correctly. The user wants me to check the grammar and spelling of the given text.\nNext, I have to identify any errors in the original text.\nThen, I need to provide the corrected version while keeping the original structure.\n"
+          }
+        }
+      ],
+      "created": 1793688508,
+      "model": "MiniCPM5-2B",
+      "system_fingerprint": "b11960-8642541b2",
+      "object": "chat.completion",
+      "usage": {
+        "completion_tokens": 295,
+        "prompt_tokens": 135,
+        "total_tokens": 430,
+        "prompt_tokens_details": {
+          "cached_tokens": 4
+        }
+      },
+      "id": "chatcmpl-GIGkEnmkqKXL7yz8BIy5YJIY3iwVVHDm",
+      "timings": {
+        "cache_n": 4,
+        "prompt_n": 131,
+        "prompt_ms": 223.906,
+        "prompt_per_token_ms": 1.7092061068702291,
+        "prompt_per_second": 585.0669477369968,
+        "predicted_n": 295,
+        "predicted_ms": 5297.384,
+        "predicted_per_token_ms": 18.01831292517007,
+        "predicted_per_second": 55.499091627112556
+      }
+    }
+  },
+  {
+    "name": "anchored_json",
+    "seconds": 24.084245749996626,
+    "request": {
+      "model": "MiniCPM5-2B",
+      "messages": [
+        {
+          "role": "system",
+          "content": "你是英语教师。只找明确的语法和拼写错误。输出JSON：{\"issues\":[{\"line\":2,\"quote\":\"原文词组\",\"occurrence\":1,\"kind\":\"grammar或spelling\",\"suggestion\":\"最小修改后的词组\",\"explanation\":\"中文原因\"}]}。quote必须逐字引用该行原文。suggestion只能是英文词或短语，不含行号。例：原句She go home. 中go建议goes，原因第三人称单数。"
+        },
+        {
+          "role": "user",
+          "content": "[L1] A Day at the Park\n[L2] Last Sunday, I goed to the park with my freind.\n[L3] The weather were sunny and warm. We plays football\n[L4] for two hour. My sister don't like sports, so she\n[L5] read a book under a tree.\n[L6] After lunch, we see a beautifull bird near the lake.\n[L7] I was very exciting. We taked many photos and\n[L8] returned home at five o'clock. It was a happy day."
+        }
+      ],
+      "stream": false,
+      "temperature": 0.2,
+      "top_p": 0.95,
+      "min_p": 0,
+      "max_tokens": 2048
+    },
+    "response": {
+      "choices": [
+        {
+          "finish_reason": "stop",
+          "index": 0,
+          "message": {
+            "role": "assistant",
+            "content": "```json\n{\n  \"issues\": [\n    {\n      \"line\": 2,\n      \"quote\": \"Last Sunday, I goed to the park with my freind.\",\n      \"occurrence\": 1,\n      \"kind\": \"grammar\",\n      \"suggestion\": \"went\",\n      \"explanation\": \"过去时态应为went\"\n    },\n    {\n      \"line\": 2,\n      \"quote\": \"Last Sunday, I goed to the park with my freind.\",\n      \"occurrence\": 1,\n      \"kind\": \"spelling\",\n      \"suggestion\": \"friend\",\n      \"explanation\": \"拼写错误应为friend\"\n    },\n    {\n      \"line\": 3,\n      \"quote\": \"The weather were sunny and warm. We plays football\",\n      \"occurrence\": 1,\n      \"kind\": \"grammar\",\n      \"suggestion\": \"was\",\n      \"explanation\": \"单数主语weather应为was\"\n    },\n    {\n      \"line\": 3,\n      \"quote\": \"The weather were sunny and warm. We plays football\",\n      \"occurrence\": 1,\n      \"kind\": \"grammar\",\n      \"suggestion\": \"played\",\n      \"explanation\": \"过去时态应为played\"\n    },\n    {\n      \"line\": 4,\n      \"quote\": \"for two hour.\",\n      \"occurrence\": 1,\n      \"kind\": \"grammar\",\n      \"suggestion\": \"hours\",\n      \"explanation\": \"应为复数hour\"\n    },\n    {\n      \"line\": 5,\n      \"quote\": \"My sister don't like sports, so she\",\n      \"occurrence\": 1,\n      \"kind\": \"grammar\",\n      \"suggestion\": \"doesn't\",\n      \"explanation\": \"主语she应为doesn't\"\n    },\n    {\n      \"line\": 6,\n      \"quote\": \"After lunch, we see a beautifull bird near the lake.\",\n      \"occurrence\": 1,\n      \"kind\": \"grammar\",\n      \"suggestion\": \"saw\",\n      \"explanation\": \"过去时态应为saw\"\n    },\n    {\n      \"line\": 6,\n      \"quote\": \"After lunch, we see a beautifull bird near the lake.\",\n      \"occurrence\": 1,\n      \"kind\": \"spelling\",\n      \"suggestion\": \"beautiful\",\n      \"explanation\": \"拼写错误应为beautiful\"\n    },\n    {\n      \"line\": 7,\n      \"quote\": \"I was very exciting. We taked many photos and\",\n      \"occurrence\": 1,\n      \"kind\": \"grammar\",\n      \"suggestion\": \"took\",\n      \"explanation\": \"过去时态应为took\"\n    }\n  ]\n}\n```",
+            "reasoning_content": "We are given a text with several lines that contain grammatical errors.\n We need to identify the errors and provide suggestions in the specified JSON format.\n The JSON should have an array of issues, each with:\n   - line: the line number (starting from 1)\n   - quote: the exact quote from that line\n   - occurrence: how many times the error occurs in the text (but note: we are only given one occurrence per line in the example, so we might need to check the entire text)\n   - kind: either \"grammar\" or \"spelling\"\n   - suggestion: the corrected word or phrase in English\n   - explanation: the reason in Chinese\n\n However, note that the example output in the instruction shows only one issue per line, but we must check the entire text.\n\n Let's analyze each line:\n\n L2: \"Last Sunday, I goed to the park with my freind.\"\n   - \"goed\" should be \"went\" (past tense of go)\n   - \"freind\" should be \"friend\" (spelling)\n\n L3: \"The weather were sunny and warm. We plays football\"\n   - \"were\" should be \"was\" (singular subject \"weather\")\n   - \"plays\" should be \"played\" (past tense of play)\n\n L4: \"for two hour.\"\n   - \"hour\" should be \"hours\" (plural)\n\n L5: \"My sister don't like sports, so she\"\n   - \"don't\" should be \"doesn't\" (subject is \"she\")\n\n L6: \"After lunch, we see a beautifull bird near the lake.\"\n   - \"see\" should be \"saw\" (past tense)\n   - \"beautifull\" should be \"beautiful\" (spelling)\n\n L7: \"I was very exciting. We taked many photos and\"\n   - \"taked\" should be \"took\" (past tense of take)\n\n L8: \"returned home at five o'clock. It was a happy day.\"\n   - \"returned\" should be \"returned\" (correct) but note: the line says \"returned home at five o'clock.\" which is correct.\n\n However, note that the example output in the instruction shows only one issue per line, but we must check the entire text.\n\n Let's list the issues:\n\n 1. L2: grammar (goed -> went) and spelling (freind -> friend)\n 2. L3: grammar (were -> was) and grammar (plays -> played)\n 3. L4: grammar (hour -> hours)\n 4. L5: grammar (don't -> doesn't)\n 5. L6: grammar (see -> saw) and spelling (beautifull -> beautiful)\n 6. L7: grammar (taked -> took)\n\n But note: the example output in the instruction shows only one issue per line, but we are allowed to have multiple issues per line.\n\n However, the instruction says: \"只找明确的语法和拼写错误\" (only find clear grammar and spelling errors).\n\n We must output the issues in the JSON format.\n\n Let's create the JSON:\n\n We have to be careful: the example output in the instruction shows only one issue per line, but we have multiple issues in some lines.\n\n We can have multiple issues in the same line.\n\n Let's write the JSON accordingly.\n"
+          }
+        }
+      ],
+      "created": 1793688532,
+      "model": "MiniCPM5-2B",
+      "system_fingerprint": "b11960-8642541b2",
+      "object": "chat.completion",
+      "usage": {
+        "completion_tokens": 1308,
+        "prompt_tokens": 228,
+        "total_tokens": 1536,
+        "prompt_tokens_details": {
+          "cached_tokens": 6
+        }
+      },
+      "id": "chatcmpl-ebO0s6szUZ0o17tRa1MsD3jh2UC4JFsa",
+      "timings": {
+        "cache_n": 6,
+        "prompt_n": 222,
+        "prompt_ms": 316.781,
+        "prompt_per_token_ms": 1.4269414414414414,
+        "prompt_per_second": 700.7996060369782,
+        "predicted_n": 1308,
+        "predicted_ms": 23757.785,
+        "predicted_per_token_ms": 18.177341239479723,
+        "predicted_per_second": 55.01354608605137
+      }
+    }
+  }
+]

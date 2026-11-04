@@ -1,0 +1,49 @@
+[
+  {
+    "title": "synthetic-essay-tight-crop",
+    "phase": "complete",
+    "words_preserved": true,
+    "edits": [
+      {
+        "literal": "beautifull",
+        "literalScore": 0.8967527051424785,
+        "original": "beautiful",
+        "originalScore": 0.022383803153581714,
+        "rect": {
+          "height": 0.05141388174807193,
+          "width": 0.15873015873015872,
+          "x": 0.4087301587301587,
+          "y": 0.7197943444730077
+        }
+      }
+    ],
+    "scores": [
+      0.7634164493567548
+    ],
+    "issues": 6,
+    "rejected": 4,
+    "timings": {
+      "jev_1": 3.545722007751465,
+      "literal_1": 2.7128729820251465,
+      "ocr_1": 7.205938100814819,
+      "review": 38.76768898963928
+    }
+  },
+  {
+    "title": "synthetic-essay",
+    "phase": "complete",
+    "words_preserved": true,
+    "edits": [],
+    "scores": [
+      0.6736098101064927
+    ],
+    "issues": 9,
+    "rejected": 1,
+    "timings": {
+      "jev_1": 5.920258045196533,
+      "literal_1": 0.008952975273132324,
+      "ocr_1": 8.218575954437256,
+      "review": 26.232947945594788
+    }
+  }
+]

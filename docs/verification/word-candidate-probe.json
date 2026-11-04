@@ -1,0 +1,74 @@
+{
+  "word_ocr": {
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "beautifull"
+        }
+      }
+    ],
+    "created": 1793688690,
+    "model": "minicpm-ocr",
+    "system_fingerprint": "b11960-8642541b2",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 5,
+      "prompt_tokens": 280,
+      "total_tokens": 285,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "id": "chatcmpl-mYStvwZUIQGSvTo3ywwA7m2ocqOx2Lj1",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 280,
+      "prompt_ms": 1069.044,
+      "prompt_per_token_ms": 3.8180142857142862,
+      "prompt_per_second": 261.9162541485664,
+      "predicted_n": 5,
+      "predicted_ms": 38.188,
+      "predicted_per_token_ms": 9.547,
+      "predicted_per_second": 104.74494605635277
+    }
+  },
+  "beautiful": {
+    "model": "<project-root>/.local-models/weights/MiniCPM-OCR-Jev-Q4_K_M.gguf",
+    "answers": {
+      "consistency": {
+        "type": "choice",
+        "choice": "0",
+        "probabilities": {
+          "0": 0.9560873060817062,
+          "1": 0.04391269391829381
+        },
+        "confidence": 0.9121746121634124
+      }
+    },
+    "usage": {
+      "input_tokens": 223,
+      "output_tokens": 0
+    }
+  },
+  "beautifull": {
+    "model": "<project-root>/.local-models/weights/MiniCPM-OCR-Jev-Q4_K_M.gguf",
+    "answers": {
+      "consistency": {
+        "type": "choice",
+        "choice": "0",
+        "probabilities": {
+          "0": 0.7877902718694556,
+          "1": 0.21220972813054445
+        },
+        "confidence": 0.5755805437389112
+      }
+    },
+    "usage": {
+      "input_tokens": 226,
+      "output_tokens": 0
+    }
+  }
+}
