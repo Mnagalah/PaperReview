@@ -4,8 +4,13 @@ import AppKit
 @main struct PaperReviewApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var delegate
     @State private var store = WorkspaceStore()
-    @State private var models = ModelProcessController()
+    @State private var models: ModelProcessController
     @AppStorage(WorkspaceAppearance.preferenceKey) private var appearance = WorkspaceAppearance.dark.rawValue
+    init() {
+        let controller = ModelProcessController()
+        _models = State(initialValue: controller)
+        delegate.models = controller
+    }
 
     var body: some Scene {
         WindowGroup {
@@ -40,8 +45,20 @@ import AppKit
 }
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
+    weak var models: ModelProcessController?
+    private var waitingForDownload = false
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.regular)
         NSApp.activate(ignoringOtherApps: true)
+    }
+    func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        guard let models, models.isDownloadActive else { return .terminateNow }
+        guard !waitingForDownload else { return .terminateLater }
+        waitingForDownload = true
+        Task {
+            await models.pauseForTermination()
+            sender.reply(toApplicationShouldTerminate: true)
+        }
+        return .terminateLater
     }
 }

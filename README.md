@@ -4,7 +4,7 @@
 
 ## 下载安装
 
-从 [Releases](https://github.com/Mnagalah/PaperReview/releases) 下载 `PaperReview-0.1.1-macOS-arm64.zip`，解压后将 `PaperReview.app` 拖到“应用程序”。私有仓库需要登录有权限的 GitHub 账号。
+从 [Releases](https://github.com/Mnagalah/PaperReview/releases) 下载 `PaperReview-0.1.2-macOS-arm64.zip`，解压后将 `PaperReview.app` 拖到“应用程序”。私有仓库需要登录有权限的 GitHub 账号。
 
 打开应用的**模型设置 → 下载模型**，确认后自动下载；完成后点击**启动模型**。无需安装 Xcode 或单独配置 Python。需要 Apple Silicon Mac，最低目标 macOS 14，建议 24 GB 内存。
 
@@ -18,7 +18,7 @@
 
 权重及投影文件约 5.924 GB，[llama.cpp b11960 官方运行时](https://github.com/ggml-org/llama.cpp/releases/tag/b11960)约 16.5 MB。下载支持续传、跳过完整文件。首次下载约 5.94 GB，模型不包含在应用 ZIP 中。
 
-下载区显示进度、速度、剩余量和预计时间；连接中断会显示重试状态，失败后可点击**重试续传**。**删除模型…**确认后将当前模型和未完成下载移到废纸篓，保留运行时、作业及无关文件；正在使用的文件不可删除。
+下载区显示进度、速度、剩余量和预计时间，可随时**暂停下载**、**继续下载**。退出应用会保留进度，重新打开后点击**继续下载**；连接中断会显示重试状态，失败后可点击**重试续传**。**删除模型…**确认后将当前模型和未完成下载移到废纸篓，保留运行时、作业及无关文件；正在使用的文件不可删除。
 
 ## 使用
 
@@ -38,6 +38,8 @@
 
 关闭窗口后模型服务继续运行，可在模型设置中停止。
 
+图标使用 Icon Composer 分层资源，支持新版 macOS 的浅色、深色、透明和染色外观。外观由系统“图标与小组件”设置选择；旧版 macOS 使用静态图标。
+
 ## 开发
 
 ```sh
@@ -46,6 +48,7 @@
 swift test
 bash Tests/ModelScriptsTests/startup_tests.sh
 python3 Tests/ModelScriptsTests/download_resume_tests.py
+python3 Tests/ModelScriptsTests/download_pause_tests.py
 ./script/build_and_run.sh --build-only
 ./script/package_release.sh
 ```

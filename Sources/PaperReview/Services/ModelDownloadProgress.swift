@@ -34,8 +34,8 @@ nonisolated struct ModelDownloadEvent: Sendable {
 }
 
 nonisolated struct ModelDownloadProgress: Sendable {
-    enum Phase: Sendable { case downloading, failed, complete }
-    enum FileStage: String, Sendable { case waiting, downloading, retrying, installing, complete, failed }
+    enum Phase: String, Sendable { case downloading, pausing, paused, failed, complete }
+    enum FileStage: String, Sendable { case waiting, downloading, retrying, installing, complete, paused, failed }
     struct Item: Identifiable, Sendable {
         let file: ModelDownloadFile
         var received: Int64 = 0
@@ -51,6 +51,7 @@ nonisolated struct ModelDownloadProgress: Sendable {
             case .retrying: "重试 \(min(attempt + 1, 6))/6"
             case .installing: "安装中"
             case .complete: "已完成"
+            case .paused: "已暂停"
             case .failed: "失败"
             }
         }
@@ -73,6 +74,8 @@ nonisolated struct ModelDownloadProgress: Sendable {
     var title: String {
         switch phase {
         case .complete: "下载完成"
+        case .pausing: "正在暂停下载"
+        case .paused: "下载已暂停"
         case .failed: "下载未完成，进度已保留"
         case .downloading:
             if items.contains(where: { $0.stage == .installing }) { "正在安装运行时" }
@@ -85,6 +88,28 @@ nonisolated struct ModelDownloadProgress: Sendable {
     init(files: [ModelDownloadFile], home: URL, now: TimeInterval) {
         self.home = home; items = files.map { Item(file: $0) }; lastProgress = now
         refresh(now: now)
+    }
+    // Restore the last display snapshot without reading the model directory.
+    // This keeps launch from requesting Documents access for legacy locations.
+    init(files: [ModelDownloadFile], home: URL, checkpoint: DownloadCheckpoint, now: TimeInterval) {
+        self.home = home; lastProgress = now
+        items = files.map { file in
+            var item = Item(file: file)
+            if let saved = checkpoint.files.first(where: { $0.id == file.id && $0.relativePath == file.relativePath && $0.bytes == file.bytes }) {
+                item.received = max(0, min(file.bytes, saved.received))
+                item.stage = saved.complete ? .complete : .paused
+            }
+            return item
+        }
+        phase = checkpoint.state == "failed" ? .failed : .paused
+        failure = checkpoint.failure
+    }
+    mutating func beginPausing() {
+        phase = .pausing; bytesPerSecond = 0; waitingForData = false
+    }
+    mutating func pause() {
+        phase = .paused; bytesPerSecond = 0; waitingForData = false; samples.removeAll()
+        for index in items.indices where items[index].stage != .complete { items[index].stage = .paused }
     }
     mutating func apply(_ event: ModelDownloadEvent) {
         guard let index = items.firstIndex(where: { $0.id == event.id }) else { return }

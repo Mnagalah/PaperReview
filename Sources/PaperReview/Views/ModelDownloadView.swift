@@ -3,6 +3,7 @@ import SwiftUI
 struct ModelDownloadView: View {
     let progress: ModelDownloadProgress
     let retry: () -> Void
+    let pause: () -> Void
     let retryDisabled: Bool
     @State private var showingFiles = false
     var body: some View {
@@ -32,6 +33,12 @@ struct ModelDownloadView: View {
                 Text(progress.failure).foregroundStyle(.red).textSelection(.enabled)
                     .lineLimit(3)
                 Button("重试续传", action: retry).disabled(retryDisabled)
+            } else if progress.phase == .paused {
+                Button("继续下载", action: retry).disabled(retryDisabled)
+            } else if progress.phase == .downloading {
+                Button("暂停下载", action: pause)
+            } else if progress.phase == .pausing {
+                Button("正在暂停…") {}.disabled(true)
             }
             SettingsDisclosure(title: "下载详情", isExpanded: $showingFiles) {
                 VStack(spacing: 12) {
@@ -60,7 +67,7 @@ struct ModelDownloadView: View {
     }
     private var remainingTime: String {
         guard let seconds = progress.secondsRemaining else {
-            return progress.phase == .failed ? "可继续下载" : "预计时间计算中"
+            return [.failed, .paused, .pausing].contains(progress.phase) ? "进度已保留" : "预计时间计算中"
         }
         if seconds < 60 { return "预计剩余 \(max(1, Int(ceil(seconds)))) 秒" }
         if seconds < 3600 { return "预计剩余 \(Int(ceil(seconds / 60))) 分钟" }

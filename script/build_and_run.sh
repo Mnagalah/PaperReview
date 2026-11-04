@@ -56,18 +56,27 @@ mkdir -p "$STAGED_APP/Contents/MacOS" "$STAGED_APP/Contents/Resources"
 cp "$BINARY" "$STAGED_APP/Contents/MacOS/$APP_NAME"
 if [[ "$CONFIGURATION" == release ]]; then /usr/bin/strip -S "$STAGED_APP/Contents/MacOS/$APP_NAME"; fi
 chmod 755 "$STAGED_APP/Contents/MacOS/$APP_NAME"
-cp script/start_models.sh script/stop_models.sh script/setup_models_modelscope.sh script/install_runtime.sh script/download_file.sh script/model_downloads.tsv "$STAGED_APP/Contents/Resources/"
+cp script/start_models.sh script/stop_models.sh script/setup_models_modelscope.sh script/install_runtime.sh script/download_file.sh script/download_supervisor.sh script/model_downloads.tsv "$STAGED_APP/Contents/Resources/"
 cp docs/THIRD_PARTY.md "$STAGED_APP/Contents/Resources/"
-/usr/bin/python3 - "$STAGED_APP/Contents/Info.plist" "$ROOT" "$CONFIGURATION" <<'PY'
-import plistlib,sys
+# Compile the layered artwork rather than flattening it: macOS selects its
+# Aqua, Dark Aqua and tintable renditions. actool also emits the legacy ICNS.
+xcrun actool "$ROOT/Assets/PaperReview.icon" \
+  --compile "$STAGED_APP/Contents/Resources" \
+  --output-partial-info-plist "$STAGE/icon-info.plist" \
+  --app-icon PaperReview --platform macosx --minimum-deployment-target 14.0 \
+  --target-device mac --errors --warnings --output-format human-readable-text
+/usr/bin/python3 - "$STAGED_APP/Contents/Info.plist" "$ROOT" "$CONFIGURATION" "$STAGE/icon-info.plist" <<'PY'
+import os,plistlib,sys
 with open(sys.argv[1], 'wb') as f:
     info=dict(CFBundleExecutable='PaperReview', CFBundleIdentifier='local.paperreview.mac',
         CFBundleName='作文批阅', CFBundleDisplayName='作文批阅', CFBundlePackageType='APPL',
-        CFBundleShortVersionString='0.1.1', CFBundleVersion='2', LSMinimumSystemVersion='14.0',
+        CFBundleShortVersionString='0.1.2', CFBundleVersion='3', LSMinimumSystemVersion='14.0',
         NSPrincipalClass='NSApplication', NSHighResolutionCapable=True,
         NSAppTransportSecurity=dict(NSAllowsLocalNetworking=True))
     if sys.argv[3]=='debug': info['PaperReviewProjectRoot']=sys.argv[2]
+    with open(sys.argv[4], 'rb') as icons: info.update(plistlib.load(icons))
     plistlib.dump(info, f)
+os.unlink(sys.argv[4])
 PY
 # Validate a fresh bundle before stopping/replacing the usable application.
 # A development signer keeps a stable designated requirement across rebuilds.

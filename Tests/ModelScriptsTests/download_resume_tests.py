@@ -18,7 +18,7 @@ PROJECT = pathlib.Path(__file__).resolve().parents[2]
 def fixture(root, slow=False):
     resources = root / "Resources"
     resources.mkdir(parents=True)
-    for name in ("setup_models_modelscope.sh", "install_runtime.sh", "download_file.sh"):
+    for name in ("setup_models_modelscope.sh", "install_runtime.sh", "download_file.sh", "download_supervisor.sh"):
         shutil.copy(PROJECT / "script" / name, resources)
     rows = [line.split("\t") for line in (PROJECT / "script/model_downloads.tsv").read_text().splitlines()]
     payloads = {}

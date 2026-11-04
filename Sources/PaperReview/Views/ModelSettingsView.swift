@@ -29,15 +29,16 @@ struct ModelSettingsView: View {
                     Button("停止模型") { controller.run("stop_models.sh", store: store) }
                     Spacer()
                     Button("删除模型…", role: .destructive) { controller.prepareRemoval() }
-                    if controller.busy && controller.download?.phase != .downloading { ProgressView().controlSize(.small) }
+                    if controller.busy && !controller.isDownloadActive { ProgressView().controlSize(.small) }
                     Button { Task { await store.checkModels() } } label: { Image(systemName: "arrow.clockwise") }.help("检查连接")
                 }.disabled(controller.busy || store.activeID != nil)
                 if let progress = controller.download {
                     ModelDownloadView(progress: progress,
                         retry: { controller.run("setup_models_modelscope.sh", store: store) },
+                        pause: { controller.pauseDownload() },
                         retryDisabled: controller.busy || store.activeID != nil)
                 }
-                if !controller.output.isEmpty && controller.download == nil {
+                if !controller.output.isEmpty && controller.showsCommandOutput {
                     Text(controller.output).font(.callout).textSelection(.enabled).fixedSize(horizontal: false, vertical: true)
                 }
             }
