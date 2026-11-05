@@ -4,6 +4,7 @@ import ImageIO
 import Testing
 import Vision
 import PaperReviewCore
+import PaperReviewLocalModels
 @testable import PaperReview
 
 @Test func legacyRecordContinuesReviewWithoutRequiringProofreading() {

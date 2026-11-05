@@ -1,6 +1,6 @@
 import Foundation
 import Testing
-@testable import PaperReview
+@testable import PaperReviewLocalModels
 
 @Test @MainActor func reopeningRestoresThePausedSnapshotWithoutReadingTheModelDirectory() throws {
     let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)

@@ -56,18 +56,6 @@ private func formFragments() -> [TextHint] {
     #expect(annotations.contains { $0.rect == boxes[0] })
 }
 
-@Test func reviewLineIDsStayOutsideTheStudentTextField() throws {
-    let annotations = PageScaffolding.annotations(fragments: formFragments(), rectangles: numberBoxes, aspectRatio: 1.78)
-    let body = PageScaffolding.bodyText("Student's Writing\n1 I have 2 cats.\n2 In 2024 I goed home.\n3 My freind came.", annotations: annotations)
-    let source = try ModelClient.reviewSource(LineAlignment.fallback(body))
-    let rows = try #require(JSONSerialization.jsonObject(with: Data(source.utf8)) as? [[String: Any]])
-    #expect(rows.count == 3)
-    #expect(rows[0]["id"] as? Int == 1)
-    #expect(rows[0]["text"] as? String == "I have 2 cats.\n")
-    #expect((rows[1]["text"] as? String)?.contains("2024 I goed") == true)
-    #expect(!source.contains("Student's Writing"))
-}
-
 @Test func worksheetPromptMetadataCannotCoverTheHigherRightPageContinuation() {
     let fragments: [TextHint] = [
         .init(text: "Reflection Checklist:", rect: .init(x: 0.1, y: 0.10, width: 0.25, height: 0.03)),

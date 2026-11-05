@@ -94,7 +94,7 @@
 
 ### P1：保留本地协议，补上区域与失败类型的接口语义
 
-文件：[ModelClient.swift](<project-root>/Sources/PaperReviewCore/ModelClient.swift)，`recognize`、`score`。当前本地路由、图片顺序、分类 0/1 键读取、loopback 与禁止重定向均应保留。
+文件：[ModelClient.swift](<project-root>/Sources/PaperReviewLocalModels/Inference/ModelClient.swift)，`recognize`、`score`。当前本地路由、图片顺序、分类 0/1 键读取、loopback 与禁止重定向均应保留。
 
 **修正：**让调用方保存明确的区域 ID、候选 ID、模型格式/revision、渲染版本和 scoring 成败；不要只把 `Double` 和“识别过线”绑定。OCR `finish_reason=length` 不能继续当完整文本。若以后接入文档 SDK，其 block 状态和旋转元数据需有独立解析路径，不要将云信封强塞进当前 chat 解码器。当前未授权云连接，不新增云 endpoint 或密钥入口。
 

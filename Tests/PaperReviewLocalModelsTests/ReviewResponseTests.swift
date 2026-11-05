@@ -1,6 +1,7 @@
 import Foundation
 import Testing
-@testable import PaperReviewCore
+import PaperReviewCore
+@testable import PaperReviewLocalModels
 
 @Test func semanticDraftAndVerificationReadOnlyTheOriginalAndDoNotAskTheModelForPositions() throws {
     let text = "My freind go home.\nI have lived here since three years."

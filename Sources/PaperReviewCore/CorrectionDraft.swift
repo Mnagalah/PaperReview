@@ -10,10 +10,14 @@ public struct CorrectionDraft: Codable, Sendable, Identifiable {
     public let quote: String
     public let suggestion: String
     public var range: NSRange { NSRange(location: start, length: length) }
+    public init(id: Int, lineID: Int, start: Int, length: Int, quote: String, suggestion: String) {
+        self.id = id; self.lineID = lineID; self.start = start; self.length = length
+        self.quote = quote; self.suggestion = suggestion
+    }
 }
 
-enum CorrectionDiff {
-    static func merge(_ batches: [[CorrectionDraft]]) throws -> [CorrectionDraft] {
+public enum CorrectionDiff {
+    public static func merge(_ batches: [[CorrectionDraft]]) throws -> [CorrectionDraft] {
         var drafts: [CorrectionDraft] = []
         for draft in batches.flatMap({ $0 }) where !drafts.contains(where: { $0.range == draft.range && $0.suggestion == draft.suggestion }) {
             drafts.append(draft)
@@ -36,7 +40,7 @@ enum CorrectionDiff {
             .map { Token(text: ns.substring(with: $0.range), range: $0.range) }
     }
 
-    static func edits(source: Transcript, corrected: String) throws -> [CorrectionDraft] {
+    public static func edits(source: Transcript, corrected: String) throws -> [CorrectionDraft] {
         let original = source.text as NSString, replacement = corrected as NSString
         let a = tokens(source.text), b = tokens(corrected)
         let difference = b.map(\.text).difference(from: a.map(\.text))
@@ -114,4 +118,8 @@ public struct ReviewModelEvidence: Codable, Sendable {
     public let stageSeconds: [String: Double]
     public let drafts: [CorrectionDraft]
     public let decisions: [ReviewDraftDecision]
+    public init(version: String, stageSeconds: [String: Double], drafts: [CorrectionDraft], decisions: [ReviewDraftDecision]) {
+        self.version = version; self.stageSeconds = stageSeconds
+        self.drafts = drafts; self.decisions = decisions
+    }
 }

@@ -1,6 +1,6 @@
 import Foundation
 import Testing
-@testable import PaperReview
+@testable import PaperReviewLocalModels
 
 @Test func modelRemovalInventoryIncludesOnlyCurrentWeightsPartialsAndMarkers() throws {
     let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)

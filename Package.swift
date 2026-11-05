@@ -10,13 +10,15 @@ let package = Package(
     ],
     targets: [
         .target(name: "PaperReviewCore"),
+        .target(name: "PaperReviewLocalModels", dependencies: ["PaperReviewCore"]),
         .executableTarget(
             name: "PaperReview",
-            dependencies: ["PaperReviewCore"],
+            dependencies: ["PaperReviewCore", "PaperReviewLocalModels"],
             swiftSettings: [.defaultIsolation(MainActor.self)]
         ),
         .testTarget(name: "PaperReviewCoreTests", dependencies: ["PaperReviewCore"]),
-        .testTarget(name: "PaperReviewMacTests", dependencies: ["PaperReview", "PaperReviewCore"])
+        .testTarget(name: "PaperReviewLocalModelsTests", dependencies: ["PaperReviewLocalModels", "PaperReviewCore"]),
+        .testTarget(name: "PaperReviewMacTests", dependencies: ["PaperReview", "PaperReviewCore", "PaperReviewLocalModels"])
     ],
     swiftLanguageModes: [.v6]
 )

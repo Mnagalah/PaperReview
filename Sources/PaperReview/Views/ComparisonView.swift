@@ -20,7 +20,7 @@ struct ComparisonView: View {
     var body: some View {
         VStack(spacing: 0) {
             StageStrip(record: job.record, comparisonMode: comparisonMode,
-                threshold: store.configuration.threshold,
+                threshold: store.models.policy.threshold,
                 canRetryOCR: store.activeID != job.id && !job.record.phase.isRunning,
                 onRetryOCR: { store.retry(job, entireOCR: true) })
             Divider()

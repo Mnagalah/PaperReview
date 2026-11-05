@@ -1,4 +1,5 @@
 import Foundation
+import PaperReviewCore
 
 struct EnglishUsageFocus: Sendable {
     let draft: CorrectionDraft

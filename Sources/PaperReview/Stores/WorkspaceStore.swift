@@ -18,8 +18,7 @@ struct DuplicatePhoto: Identifiable {
     var showingInspector = true
     var globalError: String?
     var duplicatePhotos: [DuplicatePhoto] = []
-    var modelHealth = [false, false, false]
-    var configuration: ModelConfiguration
+    let models: any ModelModule
     private(set) var activeID: UUID?
     private var task: Task<Void, Never>?
     private var pending: [UUID: PipelinePhase] = [:]
@@ -34,13 +33,11 @@ struct DuplicatePhoto: Identifiable {
     private let repository: AssignmentRepository
     private let processor = PhotoProcessor()
     private func structureVersion(_ page: PreparedPage) -> String { page.scan.version + ":" + PageScaffolding.version }
-    let client = ModelClient()
     var selected: Assignment? { assignments.first { $0.id == selectedID } }
-    var allModelsReady: Bool { modelHealth.allSatisfy { $0 } }
+    var allModelsReady: Bool { models.readiness.isReady }
 
-    init(dataRoot: URL? = nil) {
-        configuration = UserDefaults.standard.data(forKey: "modelConfiguration")
-            .flatMap { try? JSONDecoder().decode(ModelConfiguration.self, from: $0) } ?? ModelConfiguration()
+    init(models: any ModelModule, dataRoot: URL? = nil) {
+        self.models = models
         let arguments = ProcessInfo.processInfo.arguments
         let root: URL
         if let dataRoot { root = dataRoot }
@@ -159,10 +156,9 @@ struct DuplicatePhoto: Identifiable {
             $0.record.phase == .queued && !deleting.contains($0.id) && !restarting.contains($0.id) && !hydrating.contains($0.id)
         }) else { return }
         let resume = pending.removeValue(forKey: job.id) ?? .recognizing
-        let config = configuration
         activeID = job.id
         task = Task {
-            await process(job, resume: resume, config: config)
+            await process(job, resume: resume)
             activeID = nil; task = nil
             pump()
         }
@@ -316,19 +312,20 @@ struct DuplicatePhoto: Identifiable {
         }
     }
 
-    private func process(_ job: Assignment, resume: PipelinePhase, config: ModelConfiguration) async {
+    private func process(_ job: Assignment, resume: PipelinePhase) async {
         var failedPhase = resume
         job.record.error = nil
         do {
-            try config.validate()
+            let session = try models.makeSession()
+            let policy = session.policy
             failedPhase = .preparing
             let page = try await prepare(job)
             if resume == .reviewing {
                 failedPhase = .reviewing
-                try await review(job, config: config)
+                try await review(job, session: session)
             } else {
                 let attemptStart = resume == .scoring ? max(1, job.record.attempt) : max(1, (job.record.candidates.map(\.attempt).max() ?? 0) + 1)
-                for attempt in attemptStart...max(attemptStart, config.maximumAttempts) {
+                for attempt in attemptStart...max(attemptStart, policy.maximumAttempts) {
                     try Task.checkCancellation()
                     job.record.attempt = attempt
                     if !(resume == .scoring && attempt == attemptStart && job.record.transcript != nil) {
@@ -341,14 +338,14 @@ struct DuplicatePhoto: Identifiable {
                         else if attempt == 2 { image = page.source }
                         else if let strong = page.strong { image = strong }
                         else { image = try await processor.strongImage(page.source) }
-                        let preliminary = try await recognizePages(image: image, page: page, job: job, config: config)
+                        let preliminary = try await recognizePages(image: image, page: page, job: job, session: session)
                         try Task.checkCancellation()
                         job.record.transcript = preliminary
                         job.record.phaseDurations["ocr_\(attempt)"] = Date().timeIntervalSince(start)
                         try await repository.save(job.record)
                         failedPhase = .verifyingWords
                         let literalStart = Date()
-                        let verified = try await verifyLiteral(preliminary, job: job, page: page, config: config)
+                        let verified = try await verifyLiteral(preliminary, job: job, page: page, session: session)
                         try Task.checkCancellation()
                         job.record.transcript = verified.transcript
                         job.record.candidates.append(OCRCandidate(attempt: attempt, transcript: verified.transcript,
@@ -376,8 +373,8 @@ struct DuplicatePhoto: Identifiable {
                         for section in ReadingOrder.pageTranscripts(transcript) {
                             let source = try await processor.pageCrop(scoringImage, region: section.region)
                             let render = try TranscriptRenderer.png(section.transcript, width: page.width, height: page.height)
-                            scores.append(try await client.score(original: source, rendered: render,
-                                text: section.transcript.text, base: config.jevURL))
+                            scores.append(try await session.score(original: source, rendered: render,
+                                text: section.transcript.text))
                         }
                         // Each page must pass; a strong left page must not mask a weak right page.
                         score = scores.min() ?? 0
@@ -390,19 +387,19 @@ struct DuplicatePhoto: Identifiable {
                     job.record.phaseDurations["jev_\(attempt)"] = Date().timeIntervalSince(start)
                     try await repository.save(job.record)
                     let current = job.record.candidates.first { $0.transcript.revision == transcript.revision }
-                    if QualityGate.canProceed(score: score, threshold: config.threshold,
+                    if QualityGate.canProceed(score: score, threshold: policy.threshold,
                         verification: current?.wordVerification, readability: current?.readability) {
                         failedPhase = .reviewing
-                        try await review(job, config: config)
+                        try await review(job, session: session)
                         break
                     }
-                    if attempt >= config.maximumAttempts {
+                    if attempt >= policy.maximumAttempts {
                         job.record.transcript = QualityGate.best(job.record.candidates.filter {
                             $0.scoredSourceVersion == page.scan.version
                         })?.transcript ?? transcript
                         // A renderer-dependent whole-page score ranks candidates; it is not an accuracy guarantee.
                         failedPhase = .reviewing
-                        try await review(job, config: config)
+                        try await review(job, session: session)
                     }
                 }
             }
@@ -419,13 +416,13 @@ struct DuplicatePhoto: Identifiable {
     }
 
     private func recognizePages(image: Data, page: PreparedPage, job: Assignment,
-                                config: ModelConfiguration) async throws -> Transcript {
+                                session: any ModelSession) async throws -> Transcript {
         var texts: [String] = []
         let bodyImage = try await processor.recognitionImage(image, annotations: page.annotations)
         for (index, region) in page.readingRegions.enumerated() {
             try Task.checkCancellation()
             let crop = try await processor.pageCrop(bodyImage, region: region)
-            let response = try await client.recognize(image: crop, base: config.ocrURL)
+            let response = try await session.recognize(image: crop)
             try Task.checkCancellation()
             texts.append(PageScaffolding.bodyText(response.text, annotations: page.annotations))
             try await repository.savePageReading(response, region: region, page: index + 1,
@@ -449,12 +446,12 @@ struct DuplicatePhoto: Identifiable {
     }
 
     private func verifyLiteral(_ transcript: Transcript, job: Assignment, page: PreparedPage,
-                               config: ModelConfiguration) async throws -> VerifiedTranscript {
+                               session: any ModelSession) async throws -> VerifiedTranscript {
         let inventory = WordAlignment.inventory(transcript, hints: page.words)
         let regionHints = inventory.regions.map(\.cropHint)
         var checks: [WordCheck] = []
         var crops: [Data] = []
-        let cachePrefix = "ocr-f16-59e3a326:\(PhotoProcessor.version):word-pass-v2-source:\(config.ocrURL):\(job.id)"
+        let cachePrefix = "\(session.recognitionIdentity):\(PhotoProcessor.version):word-pass-v2-source:\(job.id)"
         job.record.phase = .verifyingWords
         job.record.wordChecksCompleted = 0; job.record.wordChecksTotal = inventory.regions.count
         try await repository.save(job.record)
@@ -471,7 +468,7 @@ struct DuplicatePhoto: Identifiable {
             if let cached = wordReadings[key] { reading = cached }
             else {
                 do {
-                    let response = try await client.recognize(image: crop, base: config.ocrURL)
+                    let response = try await session.recognize(image: crop)
                     reading = CachedReading(text: response.truncated ? nil : WordAlignment.lexicalReading(response.text))
                 } catch ModelError.emptyOCR {
                     reading = CachedReading(text: nil)
@@ -488,7 +485,7 @@ struct DuplicatePhoto: Identifiable {
                 else {
                     let sourceCrop = try await processor.wordCrop(page.source, hint: region.cropHint, neighbors: regionHints)
                     do {
-                        let response = try await client.recognize(image: sourceCrop, base: config.ocrURL)
+                        let response = try await session.recognize(image: sourceCrop)
                         sourceReading = response.truncated ? nil : WordAlignment.lexicalReading(response.text)
                     } catch ModelError.emptyOCR { sourceReading = nil }
                     try Task.checkCancellation()
@@ -525,12 +522,12 @@ struct DuplicatePhoto: Identifiable {
                     checks[index].unresolved = true; checks[index].evidence = "empty_word_region"; continue
                 }
                 for text in candidates {
-                    let key = "\(cachePrefix):jev-q4:\(config.jevURL):\(TranscriptRenderer.wordVersion):\(region.rect):\(candidates.joined(separator: "|")):\(text)"
+                    let key = "\(cachePrefix):\(session.verificationIdentity):\(TranscriptRenderer.wordVersion):\(region.rect):\(candidates.joined(separator: "|")):\(text)"
                     let score: Double
                     if let cached = wordScores[key] { score = cached }
                     else {
                         guard let rendered = normalized.1[text] else { throw PhotoError.renderFailed }
-                        score = try await client.score(original: normalized.0, rendered: rendered, text: text, base: config.jevURL)
+                        score = try await session.score(original: normalized.0, rendered: rendered, text: text)
                         wordScores[key] = score
                     }
                     checks[index].scores[text] = score
@@ -566,7 +563,7 @@ struct DuplicatePhoto: Identifiable {
             readability: ReadabilityEvidence(checks: checks, totalRegions: inventory.regions.count))
     }
 
-    private func review(_ job: Assignment, config: ModelConfiguration) async throws {
+    private func review(_ job: Assignment, session: any ModelSession) async throws {
         guard let transcript = job.record.transcript else { throw ModelError.emptyOCR }
         job.record.phase = .reviewing
         // Keep the last valid batch if this new model request fails.
@@ -575,7 +572,7 @@ struct DuplicatePhoto: Identifiable {
         let candidate = job.record.candidates.first { $0.transcript.revision == transcript.revision }
         let checks = candidate?.scoredSourceVersion == job.page?.scan.version
             ? try await repository.wordChecks(attempt: candidate?.attempt ?? job.record.attempt, id: job.id) : []
-        let result = try await client.review(transcript: transcript, base: config.reviewURL)
+        let result = try await session.review(transcript: transcript)
         try Task.checkCancellation()
         guard job.record.transcript?.revision == transcript.revision else { return }
         let uncertainRects = candidate?.uncertainWordRects ?? []
@@ -681,18 +678,7 @@ struct DuplicatePhoto: Identifiable {
         Task { do { try await repository.save(job.record) } catch { globalError = "批注状态未保存：\(error.localizedDescription)" } }
     }
 
-    func saveConfiguration(_ newValue: ModelConfiguration) throws {
-        try newValue.validate()
-        UserDefaults.standard.set(try JSONEncoder().encode(newValue), forKey: "modelConfiguration")
-        configuration = newValue
-    }
-
-    func checkModels() async {
-        async let a = client.health(configuration.ocrURL)
-        async let b = client.health(configuration.jevURL)
-        async let c = client.health(configuration.reviewURL)
-        modelHealth = await [a, b, c]
-    }
+    func checkModels() async { await models.checkReadiness() }
 
     func showOriginal(_ job: Assignment) {
         Task { let url = await repository.originalURL(job.record); NSWorkspace.shared.open(url) }

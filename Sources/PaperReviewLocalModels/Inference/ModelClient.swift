@@ -1,47 +1,5 @@
 import Foundation
-
-public struct ModelConfiguration: Codable, Equatable, Sendable {
-    public var ocrURL: String = "http://127.0.0.1:18499"
-    public var jevURL: String = "http://127.0.0.1:18500"
-    public var reviewURL: String = "http://127.0.0.1:18501"
-    /// An experimental retry trigger, not a calibrated accuracy guarantee.
-    public var threshold: Double = 0.50
-    public var maximumAttempts: Int = 3
-    public init() {}
-    public func validate() throws {
-        for url in [ocrURL, jevURL, reviewURL] { _ = try LocalEndpoint.base(url) }
-        guard QualityGate.validScore(threshold), (1...3).contains(maximumAttempts) else {
-            throw ModelError.invalidConfiguration
-        }
-    }
-}
-
-public enum LocalEndpoint {
-    public static func base(_ value: String) throws -> URL {
-        guard let parts = URLComponents(string: value), parts.scheme == "http",
-              let host = parts.host, ["127.0.0.1", "localhost", "::1", "[::1]"].contains(host.lowercased()),
-              parts.user == nil, parts.password == nil, parts.query == nil, parts.fragment == nil,
-              parts.path.isEmpty || parts.path == "/", let url = parts.url else {
-            throw ModelError.localOnly
-        }
-        return url
-    }
-}
-
-public enum ModelError: LocalizedError, Sendable {
-    case localOnly, invalidConfiguration, invalidResponse(String), http(Int), emptyOCR, truncated, unavailable(String)
-    public var errorDescription: String? {
-        switch self {
-        case .localOnly: "服务地址必须是本机 http://127.0.0.1、localhost 或 [::1]，不含路径、账号或查询参数。"
-        case .invalidConfiguration: "请检查 Jev 重试阈值和重试次数。"
-        case .invalidResponse(let reason): "模型返回的数据无法使用：\(reason)"
-        case .http(let status): "本机模型服务返回 HTTP \(status)。请查看模型运行日志后重试。"
-        case .emptyOCR: "OCR 没有识别出文字。请检查照片是否清楚、作文区域是否完整。"
-        case .truncated: "识别输出达到长度上限，已保留部分文字。请重试识别或分开导入页面。"
-        case .unavailable(let name): "无法连接 \(name)。请先在“模型设置”中启动模型，再重试。"
-        }
-    }
-}
+import PaperReviewCore
 
 private final class NoRedirectDelegate: NSObject, URLSessionTaskDelegate {
     func urlSession(_ session: URLSession, task: URLSessionTask,
@@ -50,11 +8,6 @@ private final class NoRedirectDelegate: NSObject, URLSessionTaskDelegate {
         // Never redirect student work away from the explicitly configured loopback origin.
         completionHandler(nil)
     }
-}
-
-public struct OCRResponse: Sendable {
-    public let text: String
-    public let truncated: Bool
 }
 
 public final class ModelClient: Sendable {
@@ -67,6 +20,8 @@ public final class ModelClient: Sendable {
         config.connectionProxyDictionary = [:]
         session = URLSession(configuration: config, delegate: NoRedirectDelegate(), delegateQueue: nil)
     }
+
+    init(session: URLSession) { self.session = session }
 
     public func health(_ base: String) async -> Bool {
         guard let url = try? LocalEndpoint.base(base).appendingPathComponent("health") else { return false }

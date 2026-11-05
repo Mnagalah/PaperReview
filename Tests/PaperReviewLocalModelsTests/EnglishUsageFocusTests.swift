@@ -1,6 +1,7 @@
 import Foundation
 import Testing
-@testable import PaperReviewCore
+import PaperReviewCore
+@testable import PaperReviewLocalModels
 
 @Test func usageFocusKeepsSourceRangesAndJoinsPhotographedRowsWithinASentence() throws {
     let source = LineAlignment.fallback("👩🏽‍🏫 Everyone was there accept Tom. Please accept my apology.\nI have lived here since\nthree years.")

@@ -1,5 +1,6 @@
 import AppKit
 import Foundation
+import PaperReviewCore
 
 struct EnglishSpellingClue: Codable, Sendable {
     let word: String

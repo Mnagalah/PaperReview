@@ -64,8 +64,11 @@ swift test --filter usageReviewFindsUnseenConfusionsAndPreservesCorrectMeanings
 
 ## 代码结构
 
-- `Sources/PaperReviewCore/`：文本结构、UTF16 定位、模型协议、识别质量与可读性规则。
-- `Sources/PaperReview/`：SwiftUI / AppKit 界面、图像处理、作业存储和模型进程管理。
+- `Sources/PaperReviewCore/`：文本结构、UTF16 定位、模型接口、识别质量与可读性规则。
+- `Sources/PaperReview/`：SwiftUI / AppKit 工作区、图像处理、作业队列与存储。
+- `Sources/PaperReviewLocalModels/`：本机模型配置、设置界面、推理调用、下载与启停。
+
+模块边界见[模型模块](architecture/model-modules.md)。应用入口注入本地模块，共享工作区不绑定本机 HTTP 客户端。
 - `script/`：构建、模型下载与服务启停。
 - `Tests/`：单元测试、macOS 布局测试和模型集成测试。
 - `PRODUCT.md`、`DESIGN.md`：产品范围和界面规范。

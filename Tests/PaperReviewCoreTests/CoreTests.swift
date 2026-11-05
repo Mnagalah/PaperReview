@@ -85,18 +85,6 @@ import Testing
     #expect(QualityGate.best([OCRCandidate(attempt: 1, transcript: transcript)]) == nil)
 }
 
-@Test(arguments: ["https://example.com", "http://192.168.1.8:8000", "http://localhost.evil.test:8000", "http://user@localhost", "http://localhost/v1", "http://localhost?token=x"])
-func studentDataCannotLeaveLoopback(_ url: String) {
-    #expect(throws: ModelError.self) { try LocalEndpoint.base(url) }
-}
-
-@Test(arguments: ["http://127.0.0.1:18499", "http://localhost:18500/", "http://[::1]:18501"])
-func localAddressesAreAccepted(_ url: String) throws { _ = try LocalEndpoint.base(url) }
-
-@Test func invalidReviewJSONIsAnErrorNotAnEmptyPass() {
-    #expect(throws: ModelError.self) { try ModelClient.decodeReview("Everything looks great!") }
-}
-
 @Test func reviewedMarkdownKeepsOriginalAndSkipsStaleAnnotations() {
     let transcript = LineAlignment.fallback("I goed home.")
     let issue = ReviewIssue(revision: transcript.revision, lineID: 1, start: 2, length: 4, quote: "goed", kind: .grammar, suggestion: "went", explanation: "过去式")

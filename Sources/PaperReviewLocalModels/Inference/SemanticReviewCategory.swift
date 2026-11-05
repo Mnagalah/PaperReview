@@ -1,4 +1,5 @@
 import Foundation
+import PaperReviewCore
 
 /// MiniCPM chooses the linguistic category after reading the complete source.
 /// Fixed Chinese copy avoids fabricated subjects and explanation-language drift.

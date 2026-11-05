@@ -1,6 +1,6 @@
 import Foundation
 import Testing
-@testable import PaperReview
+@testable import PaperReviewLocalModels
 
 @Test @MainActor func releaseModelsUseApplicationSupportAndDevelopmentModelsKeepTheirExistingLocation() {
     let home = ModelProcessController.defaultModelHome(projectRoot: "")

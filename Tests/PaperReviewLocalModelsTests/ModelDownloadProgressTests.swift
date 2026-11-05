@@ -1,6 +1,6 @@
 import Foundation
 import Testing
-@testable import PaperReview
+@testable import PaperReviewLocalModels
 
 @Test func bundledDownloadManifestKeepsTheCompetitionModelsAndExactTotal() throws {
     let root = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()

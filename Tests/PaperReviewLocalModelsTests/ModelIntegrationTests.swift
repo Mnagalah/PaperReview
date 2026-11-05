@@ -1,6 +1,7 @@
 import Foundation
 import Testing
-@testable import PaperReviewCore
+import PaperReviewCore
+@testable import PaperReviewLocalModels
 
 @Test(.enabled(if: ProcessInfo.processInfo.environment["PAPERREVIEW_REAL_MODELS"] == "1"))
 func semanticReviewUnderstandsContext() async throws {

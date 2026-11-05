@@ -1,7 +1,7 @@
 import Foundation
 import Observation
 
-@Observable final class ModelProcessController {
+@MainActor @Observable final class ModelProcessController {
     var busy = false
     var output = ""
     var showsCommandOutput = false
@@ -98,7 +98,7 @@ import Observation
             } catch { output = error.localizedDescription }
         }
     }
-    func run(_ name: String, store: WorkspaceStore) {
+    func run(_ name: String, refreshReadiness: @escaping @MainActor () async -> Bool) {
         guard !busy else { return }
         guard let script = scriptDirectory?.appendingPathComponent(name),
               FileManager.default.fileExists(atPath: script.path) else {
@@ -161,8 +161,10 @@ import Observation
                 }
                 // The startup script now waits for each model's health response.
                 // Also check the user's configured endpoints, which can differ.
-                if !downloading { await store.checkModels() }
-                if name == "start_models.sh" && !store.allModelsReady { output += "\n当前设置的服务地址未全部连接，请检查高级设置。" }
+                if !downloading {
+                    let ready = await refreshReadiness()
+                    if name == "start_models.sh" && !ready { output += "\n当前设置的服务地址未全部连接，请检查高级设置。" }
+                }
             } catch {
                 polling?.cancel()
                 output = error.localizedDescription
@@ -172,7 +174,7 @@ import Observation
                     else if pauseRequested { download?.pause(); output = "" }
                     else { download?.finish(error: error.localizedDescription) }
                 }
-                if !downloading { await store.checkModels() }
+                if !downloading { _ = await refreshReadiness() }
             }
         }
     }

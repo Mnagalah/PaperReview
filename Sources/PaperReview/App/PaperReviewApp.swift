@@ -1,14 +1,17 @@
 import SwiftUI
 import AppKit
+import PaperReviewCore
+import PaperReviewLocalModels
 
 @main struct PaperReviewApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var delegate
-    @State private var store = WorkspaceStore()
-    @State private var models: ModelProcessController
+    @State private var store: WorkspaceStore
+    @State private var models: LocalModelModule
     @AppStorage(WorkspaceAppearance.preferenceKey) private var appearance = WorkspaceAppearance.dark.rawValue
     init() {
-        let controller = ModelProcessController()
+        let controller = LocalModelModule()
         _models = State(initialValue: controller)
+        _store = State(initialValue: WorkspaceStore(models: controller))
         delegate.models = controller
     }
 
@@ -37,7 +40,9 @@ import AppKit
             }
         }
         Settings {
-            ModelSettingsView(store: store, controller: models)
+            ModelSettingsView {
+                LocalModelSettingsView(module: models, isProcessing: store.activeID != nil)
+            }
                 .preferredColorScheme((WorkspaceAppearance(rawValue: appearance) ?? .dark).colorScheme)
                 .tint(WorkspaceStyle.action)
         }
@@ -45,18 +50,18 @@ import AppKit
 }
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
-    weak var models: ModelProcessController?
+    weak var models: (any ModelModule)?
     private var waitingForDownload = false
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.regular)
         NSApp.activate(ignoringOtherApps: true)
     }
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
-        guard let models, models.isDownloadActive else { return .terminateNow }
+        guard let models, models.needsTerminationPreparation else { return .terminateNow }
         guard !waitingForDownload else { return .terminateLater }
         waitingForDownload = true
         Task {
-            await models.pauseForTermination()
+            await models.prepareForTermination()
             sender.reply(toApplicationShouldTerminate: true)
         }
         return .terminateLater

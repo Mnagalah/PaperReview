@@ -1,6 +1,7 @@
 import AppKit
 import Testing
 import PaperReviewCore
+import PaperReviewLocalModels
 @testable import PaperReview
 
 private func importFixture(_ directory: URL, name: String = "photo.png", shade: UInt8 = 255) throws -> URL {
@@ -70,7 +71,7 @@ private func importFixture(_ directory: URL, name: String = "photo.png", shade: 
     let repository = AssignmentRepository(root: directory)
     let source = try importFixture(root.appendingPathComponent("source"))
     let job = Assignment(record: try await repository.importPhoto(source))
-    let store = WorkspaceStore(dataRoot: directory)
+    let store = WorkspaceStore(models: LocalModelModule(), dataRoot: directory)
     store.assignments = [job]; store.selectedID = job.id
     for phase in [PipelinePhase.preparing, .recognizing, .verifyingWords, .scoring, .reviewing] {
         job.record.phase = phase
@@ -148,7 +149,7 @@ func inspectWorkspaceTrashRecovery() async throws {
         scan: ScanMetadata(version: PhotoProcessor.version, perspectiveCorrected: false,
             originalWidth: 40, originalHeight: 30, corners: [], pages: nil))
     try await repository.savePage(page, id: record.id)
-    let store = WorkspaceStore(dataRoot: root.appendingPathComponent("assignments"))
+    let store = WorkspaceStore(models: LocalModelModule(), dataRoot: root.appendingPathComponent("assignments"))
     await store.restore()
     let job = try #require(store.selected)
     #expect(job.id == record.id && job.page != nil)
@@ -186,7 +187,7 @@ func inspectWorkspaceTrashRecovery() async throws {
         scan: ScanMetadata(version: PhotoProcessor.version, perspectiveCorrected: false,
             originalWidth: 40, originalHeight: 30, corners: [], pages: nil))
     try await repository.savePage(page, id: record.id)
-    let store = WorkspaceStore(dataRoot: directory)
+    let store = WorkspaceStore(models: LocalModelModule(), dataRoot: directory)
     await store.restore()
     let job = try #require(store.selected)
     #expect(job.record.transcript?.text == transcript.text && job.record.transcript?.revision == transcript.revision)

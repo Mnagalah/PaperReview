@@ -3,8 +3,9 @@ import AppKit
 import PaperReviewCore
 
 struct ModelAdvancedSettingsView: View {
-    let store: WorkspaceStore
-    @Bindable var controller: ModelProcessController
+    @Bindable var module: LocalModelModule
+    let isProcessing: Bool
+    private var controller: ModelProcessController { module.controller }
     @Binding var draft: ModelConfiguration
     @State private var message = ""
     @State private var failed = false
@@ -16,7 +17,7 @@ struct ModelAdvancedSettingsView: View {
             row("审核地址") { endpoint("审核地址", value: $draft.reviewURL) }
             row("模型目录") {
                 HStack(spacing: 8) {
-                    TextField("完整路径", text: $controller.modelHome)
+                    TextField("完整路径", text: Binding(get: { controller.modelHome }, set: { controller.modelHome = $0 }))
                         .textFieldStyle(.roundedBorder).accessibilityLabel("模型目录")
                         .help(controller.modelHome)
                     Button("选择…", action: chooseDirectory)
@@ -46,7 +47,7 @@ struct ModelAdvancedSettingsView: View {
         .padding(.top, 12)
         .labelsHidden()
         .multilineTextAlignment(.leading)
-        .disabled(controller.busy || store.activeID != nil)
+        .disabled(controller.busy || isProcessing)
         .onChange(of: draft) { _, _ in message = "" }
         .onChange(of: controller.modelHome) { _, _ in message = "" }
     }
@@ -65,9 +66,9 @@ struct ModelAdvancedSettingsView: View {
         do {
             try draft.validate()
             try controller.saveModelHome()
-            try store.saveConfiguration(draft)
+            try module.saveConfiguration(draft)
             failed = false; message = "已保存"
-            Task { await store.checkModels() }
+            Task { await module.checkReadiness() }
         } catch { failed = true; message = error.localizedDescription }
     }
     private func chooseDirectory() {
