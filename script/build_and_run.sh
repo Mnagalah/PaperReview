@@ -90,7 +90,7 @@ import os,plistlib,sys
 with open(sys.argv[1], 'wb') as f:
     info=dict(CFBundleExecutable='PaperReview', CFBundleIdentifier='local.paperreview.mac',
         CFBundleName='作文批阅', CFBundleDisplayName='作文批阅', CFBundlePackageType='APPL',
-        CFBundleShortVersionString='0.1.4', CFBundleVersion='6', LSMinimumSystemVersion='14.0',
+        CFBundleShortVersionString='0.1.5', CFBundleVersion='6', LSMinimumSystemVersion='14.0',
         NSPrincipalClass='NSApplication', NSHighResolutionCapable=True,
         NSAppTransportSecurity=dict(NSAllowsLocalNetworking=True))
     if sys.argv[5]=='--ui-preview':

@@ -2,20 +2,20 @@
 
 仓库：[Mnagalah/PaperReview](https://github.com/Mnagalah/PaperReview)（Private）。
 
-## 已发布安装包 · 0.1.4（5）· 2026-11-06
+## 当前正式版 · 0.1.5（6）· 2026-11-06
 
-用户已确认同排进度与设置改进为最新正式基准，并授权替换日常版、同步 GitHub。基于 0.1.3 原生三栏、响应式布局和深浅色系统，纳入阶段条常驻、文字伸缩与状态翻页、底栏移除、未采用建议上移，以及服务／设置独立入口和固定设置标题。证据见[进度与设置记录](verification/progress-settings-20261106.md)和[0.1.4 正式版记录](verification/release-0.1.4-20261106.md)。
+用户已确认识别风险建议和排队反馈为日常版本，并要求 GitHub 安装包同步。0.1.5（6）沿用已验收的功能代码，日常应用与安装包统一版本；README 保持用户审阅的附件原文。界面和状态测试见[修正记录](verification/inline-review-feedback-20261106.md)，本次安装包验证见[发布记录](verification/release-0.1.5-20261106.md)。旧 v0.1.4 保留为历史发行。
 
 - 日常使用：`dist/PaperReview.app` → `~/Library/Developer/PaperReview/Build/PaperReview.app`，保留现有快捷方式入口。
 - 正式发行：`dist/PaperReview-Release.app` → `~/Library/Developer/PaperReview/Release/PaperReview.app`；ZIP 在 `dist/release/`。
-- 隔离预览按需通过 `--ui-preview` 重建，使用独立数据目录，不作为发行包。本次清理保留当前预览包、原有入口和历史验证证据，仅移除其 `Previous/` 旧构建。
+- 隔离预览按需通过 `--ui-preview` 重建，使用独立数据目录，不作为发行包。本次发布保留预览包、历史发行包与 `Previous/` 回退构建，不进行清理。
 - API 在线版暂停；当前产品只交付本地模型版本，不新增在线模块。
 - Git 作者、提交者和标签署名统一使用 `Mnagalah <296751126+Mnagalah@users.noreply.github.com>`；本仓库配置固定该身份，禁止使用真实姓名。
 - 后续构建仍先保存 `Previous/` 作为更新回退；正式版本验证及远端同步成功后可清理旧包，不删除作业、模型或验证资料。
 
-## 当前日常版 · 0.1.4（6）· 识别风险建议与排队反馈
+## 识别风险建议与排队反馈
 
-风险建议由 `AssignmentRecord.reviewIssues` 汇总，在问题列表直接显示并带识别风险标签；底层 `deferredReviewIssues` 继续保留证据分类，不迁移或清空旧记录。排队、运行、失败重试共用 `ReviewActivity`。用户已确认此版作为日常版，并授权同步 GitHub；本轮不改动已发布的 v0.1.4 安装包。README 使用用户审阅的附件版本，按原文替换。验收证据见[修正记录](verification/inline-review-feedback-20261106.md)。
+风险建议由 `AssignmentRecord.reviewIssues` 汇总，在问题列表直接显示并带识别风险标签；底层 `deferredReviewIssues` 继续保留证据分类，不迁移或清空旧记录。排队、运行、失败重试共用 `ReviewActivity`。日常版与安装包使用同一提交的功能代码；GitHub Latest 指向新的 0.1.5，旧版标签不改写。README 使用用户审阅的附件版本，按原文替换。验收证据见[修正记录](verification/inline-review-feedback-20261106.md)。
 
 ## 环境
 
