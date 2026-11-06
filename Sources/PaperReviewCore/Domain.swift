@@ -248,7 +248,7 @@ public enum PipelinePhase: String, Codable, Sendable {
         switch self {
         case .queued: "等待处理"
         case .preparing: "正在处理照片"
-        case .recognizing: "正在忠实转写"
+        case .recognizing: "正在转写"
         case .verifyingWords: "正在逐词识别"
         case .scoring: "正在复核识别"
         case .needsConfirmation: "可继续审核"

@@ -15,3 +15,11 @@ select_signing_identity() {
   identity="$(printf '%s\n' "$available" | awk '/"Apple Development: / { print $2; exit }')"
   printf '%s\n' "${identity:--}"
 }
+
+# A certificate-signed app must keep its designated requirement on an ordinary
+# rebuild. An explicit signer change is the caller's deliberate opt-in instead.
+signing_continuity_is_valid() {
+  local current_signer="$1" current_requirement="$2" next_requirement="$3"
+  [[ -n "${PAPERREVIEW_SIGNING_IDENTITY:-}" || -z "$current_signer" ||
+     ( -n "$current_requirement" && "$current_requirement" == "$next_requirement" ) ]]
+}

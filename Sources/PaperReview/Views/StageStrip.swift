@@ -7,23 +7,25 @@ struct StageStrip: View {
     let threshold: Double
     let canRetryOCR: Bool
     let onRetryOCR: () -> Void
+    var showsLayoutPicker = true
+    var inline = false
     var body: some View {
         HStack(spacing: 16) {
             ViewThatFits(in: .horizontal) {
                 stages(compact: false)
                 stages(compact: true)
             }
-            Spacer(minLength: 0)
-            Picker("对照方式", selection: $comparisonMode) {
+            if !inline { Spacer(minLength: 0) }
+            if showsLayoutPicker { Picker("对照方式", selection: $comparisonMode) {
                 ForEach(ComparisonMode.allCases) { mode in
                     Image(systemName: mode.symbol).tag(mode).help(mode.title).accessibilityLabel(mode.title)
                 }
-            }.pickerStyle(.segmented).labelsHidden().frame(width: 112).accessibilityLabel("对照方式")
-        }.font(.system(size: 14)).padding(.horizontal, 22).frame(height: 60)
-            .background(WorkspaceStyle.panel)
+            }.pickerStyle(.segmented).labelsHidden().frame(width: 112).accessibilityLabel("对照方式") }
+        }.font(.system(size: inline ? 12 : 14)).padding(.horizontal, inline ? 0 : 22).frame(height: inline ? 32 : 60)
+            .background { if !inline { WorkspaceStyle.panel } }
     }
     private func stages(compact: Bool) -> some View {
-        HStack(spacing: 12) {
+        HStack(spacing: inline ? 8 : 12) {
             item("照片", phase: .preparing, complete: record.width > 1, compact: compact)
             separator
             item(transcriptionTitle, phase: record.phase == .verifyingWords ? .verifyingWords : .recognizing, complete: record.transcript != nil, compact: compact)
@@ -47,12 +49,17 @@ struct StageStrip: View {
         HStack(spacing: 8) {
             Group {
                 if record.phase == phase { ProgressView().controlSize(.small) }
-                else if record.phase == .failed && record.failedPhase == phase { Image(systemName: "exclamationmark.circle").foregroundStyle(.orange) }
+                else if record.phase == .failed && record.failedPhase == phase { Image(systemName: "exclamationmark.circle").foregroundStyle(Color(nsColor: WorkspaceStyle.warningColor)) }
                 else { Image(systemName: complete ? "checkmark.circle.fill" : "circle").foregroundStyle(complete ? Color.primary.opacity(0.85) : Color.secondary.opacity(0.5)) }
             }.frame(width: 17)
             if !compact || record.phase == phase {
                 Text(title).fontWeight(record.phase == phase ? .semibold : .medium).fixedSize().monospacedDigit()
                     .foregroundStyle(record.phase == phase || complete ? Color.primary : Color.secondary)
+            }
+            if inline, phase == .verifyingWords, record.phase == .verifyingWords,
+               let total = record.wordChecksTotal, total > 0 {
+                ProgressView(value: Double(max(0, min(record.wordChecksCompleted ?? 0, total))), total: Double(total))
+                    .progressViewStyle(.linear).frame(width: 48).accessibilityLabel("逐词识别进度")
             }
         }.accessibilityElement(children: .combine).accessibilityLabel(title).help(title)
     }

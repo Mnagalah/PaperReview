@@ -70,6 +70,26 @@ import Observation
         modelHome = path
         UserDefaults.standard.set(path, forKey: "modelHome")
     }
+    func installationStatuses() -> [String: String] {
+        guard let manifest = scriptDirectory?.appendingPathComponent("model_downloads.tsv"),
+              let files = try? ModelDownloadFile.load(manifest) else { return [:] }
+        var result: [String: String] = [:]
+        for id in ["ocr", "jev", "review"] {
+            let required = files.filter { $0.id == id || $0.id == id + "-projector" }
+            var state = "已安装，未运行"
+            for file in required {
+                do {
+                    let attributes = try FileManager.default.attributesOfItem(atPath: URL(fileURLWithPath: modelHome).appendingPathComponent(file.relativePath).path)
+                    if (attributes[.size] as? NSNumber)?.int64Value != file.bytes { state = "安装未完成"; break }
+                } catch let error as CocoaError where error.code == .fileReadNoSuchFile {
+                    state = "未安装"; break
+                } catch { state = "无法检查文件"; break }
+            }
+            result[id] = state
+        }
+        return result
+    }
+
     func prepareRemoval() {
         guard !busy else { return }
         busy = true; showsCommandOutput = true; output = ""

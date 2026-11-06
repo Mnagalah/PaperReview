@@ -1,7 +1,7 @@
 .build/
 dist/
 .local-models/
-models/
+/models/
 .DS_Store
 *.xcuserstate
 __pycache__/
@@ -11,3 +11,6 @@ __pycache__/
 
 # User-provided test photographs and private runtime evidence
 .local-tests/
+
+# Native UI captures may contain private assignment evidence
+.impeccable/review/

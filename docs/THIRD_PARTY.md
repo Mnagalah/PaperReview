@@ -8,3 +8,5 @@
 | llama.cpp b11960 | 独立本机推理运行时 | [MIT](https://github.com/ggml-org/llama.cpp/blob/b11960/LICENSE) |
 
 应用使用 macOS 自带的 SwiftUI、AppKit、CoreImage 和 Vision，没有复制分发系统字体。模型和运行时下载在项目独立目录中；此记录提供来源，不替代面向再分发安装包时所需的许可证副本与适用 NOTICE 清单。
+
+等待动画的视觉参考为 [Amicro Liquid Dots](https://amicro.dev/loaders/liquid-dots)。应用以 SwiftUI Canvas 独立实现两个圆点的分合，没有复制其 React 代码或引入网页运行时。

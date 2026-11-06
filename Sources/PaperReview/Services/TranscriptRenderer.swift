@@ -110,8 +110,16 @@ enum TextDrawing {
         guard glyph < manager.numberOfGlyphs else { return nil }
         return manager.characterIndexForGlyph(at: glyph)
     }
+    static func rangeRect(_ range: NSRange, text: String, rect: NSRect, font: NSFont) -> NSRect? {
+        guard range.location >= 0, NSMaxRange(range) <= text.utf16.count else { return nil }
+        let storage = NSTextStorage(attributedString: attributed(text, font: font, color: .textColor))
+        let manager = NSLayoutManager(), container = NSTextContainer(size: rect.size)
+        container.lineFragmentPadding = 0; storage.addLayoutManager(manager); manager.addTextContainer(container)
+        let glyphs = manager.glyphRange(forCharacterRange: range, actualCharacterRange: nil)
+        return manager.boundingRect(forGlyphRange: glyphs, in: container).offsetBy(dx: rect.minX, dy: rect.minY)
+    }
     static func draw(_ text: String, in rect: NSRect, font: NSFont, color: NSColor,
-                     highlights: [(NSRange, NSColor)] = [], uncertainties: [NSRange] = []) {
+                     highlights: [(NSRange, NSColor)] = [], uncertainties: [NSRange] = [], underlines: [(NSRange, NSColor)] = []) {
         guard !text.isEmpty, rect.width > 0, rect.height > 0 else { return }
         let attributed = attributed(text, font: font, color: color)
         for range in uncertainties where range.location >= 0 && NSMaxRange(range) <= attributed.length {
@@ -121,6 +129,11 @@ enum TextDrawing {
         }
         for (range, color) in highlights where NSMaxRange(range) <= attributed.length && range.location >= 0 {
             attributed.addAttributes([.backgroundColor: color, .underlineStyle: NSUnderlineStyle.single.rawValue], range: range)
+        }
+        for (range, color) in underlines where range.location >= 0 && NSMaxRange(range) <= attributed.length {
+            attributed.addAttributes(WorkspaceStyle.annotationAttributes(color: color,
+                light: NSAppearance.currentDrawing().bestMatch(from: [.aqua, .darkAqua]) != .darkAqua,
+                highContrast: WorkspaceStyle.isHighContrast(NSAppearance.currentDrawing())), range: range)
         }
         // Never fit a glyph to the photographed bounding box. Natural font metrics
         // and wrapping are preserved; the paired zoom scales the entire page equally.

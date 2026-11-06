@@ -13,14 +13,18 @@ if [[ "$MODE" == "--release" ]]; then
   DEFAULT_BUILD_DIR="$HOME/Library/Developer/PaperReview/Release"
   APP_LINK="$ROOT/dist/$APP_NAME-Release.app"
 fi
+if [[ "$MODE" == "--ui-preview" ]]; then
+  DEFAULT_BUILD_DIR="$HOME/Library/Developer/PaperReview/UIPreview"
+  APP_LINK="$ROOT/dist/$APP_NAME-UI-Preview.app"
+fi
 # File Provider rewrites FinderInfo on .app folders under Documents, invalidating
 # their resource seals. Keep the runnable build in macOS's local developer area;
 # the project's established dist entrypoint remains a link to that same app.
 BUILD_DIR="${PAPERREVIEW_APP_BUILD_DIR:-$DEFAULT_BUILD_DIR}"
 APP="$BUILD_DIR/$APP_NAME.app"
 case "$MODE" in
-  run|--build-only|--verify|--release|--debug|--logs|--telemetry) ;;
-  *) echo "usage: $0 [run|--build-only|--verify|--release|--debug|--logs|--telemetry] [app arguments]" >&2; exit 2;;
+  run|--build-only|--verify|--release|--ui-preview|--debug|--logs|--telemetry) ;;
+  *) echo "usage: $0 [run|--build-only|--verify|--release|--ui-preview|--debug|--logs|--telemetry] [app arguments]" >&2; exit 2;;
 esac
 check_owner() {
   local project
@@ -34,21 +38,37 @@ if [[ -e "$APP" ]]; then check_owner "$APP"; fi
 if [[ -L "$APP_LINK" ]]; then
   [[ "$(readlink "$APP_LINK")" == "$APP" ]] || { echo "dist应用链接指向其他构建位置，未更改：$APP_LINK" >&2; exit 1; }
 elif [[ -e "$APP_LINK" ]]; then check_owner "$APP_LINK"; fi
+# Swift Build currently links a 14.0 deployment target with an SDK stamp of
+# 14.0 even when compiling against the current SDK. AppKit then selects its
+# legacy appearance. Pass the real SDK to the linker; keep deployment at 14.0.
+SDK_PATH="$(xcrun --sdk macosx --show-sdk-path)"
+SDK_VERSION="$(xcrun --sdk macosx --show-sdk-version)"
+BUILD_FLAGS=(--sdk "$SDK_PATH" -Xlinker -platform_version -Xlinker macos -Xlinker 14.0 -Xlinker "$SDK_VERSION")
 if [[ "$CONFIGURATION" == release ]]; then
-  swift build -c release -Xswiftc -debug-prefix-map -Xswiftc "$ROOT=."
+  swift build "${BUILD_FLAGS[@]}" -c release -Xswiftc -debug-prefix-map -Xswiftc "$ROOT=."
 else
-  swift build
+  swift build "${BUILD_FLAGS[@]}"
 fi
 BINARY="$(swift build -c "$CONFIGURATION" --show-bin-path)/$APP_NAME"
+BUILT_SDK="$(xcrun vtool -show-build "$BINARY" | awk '$1 == "sdk" { print $2; exit }')"
+if [[ "$BUILT_SDK" != "$SDK_VERSION" ]]; then
+  echo "构建 SDK 记录异常（$BUILT_SDK，预期 $SDK_VERSION），未替换现有应用。" >&2; exit 1
+fi
 source "$ROOT/script/development_signing.sh"
 CURRENT_SIGNER=""
+CURRENT_REQUIREMENT=""
 if [[ -e "$APP" ]]; then
   if SIGNATURE="$(/usr/bin/codesign --display --verbose=2 "$APP" 2>&1)"; then
     CURRENT_SIGNER="$(printf '%s\n' "$SIGNATURE" | awk '/^Authority=/ { sub(/^Authority=/, ""); print; exit }')"
+    CURRENT_REQUIREMENT="$(/usr/bin/codesign --display --requirements - "$APP" 2>&1 | sed -n '/^designated => /p')"
   fi
 fi
 SIGNING_IDENTITIES="$(/usr/bin/security find-identity -v -p codesigning)"
 SIGNING_IDENTITY="$(select_signing_identity "$SIGNING_IDENTITIES" "$CURRENT_SIGNER")"
+if [[ "$MODE" == "--ui-preview" && "$SIGNING_IDENTITY" == "-" ]]; then
+  echo '界面验证构建需要稳定的开发证书；未回退临时签名，避免更新后反复请求文稿权限。' >&2
+  exit 1
+fi
 mkdir -p "$BUILD_DIR"
 STAGE="$(mktemp -d "$BUILD_DIR/.PaperReview.XXXXXX")"
 STAGED_APP="$STAGE/$APP_NAME.app"
@@ -65,15 +85,18 @@ xcrun actool "$ROOT/Assets/PaperReview.icon" \
   --output-partial-info-plist "$STAGE/icon-info.plist" \
   --app-icon PaperReview --platform macosx --minimum-deployment-target 14.0 \
   --target-device mac --errors --warnings --output-format human-readable-text
-/usr/bin/python3 - "$STAGED_APP/Contents/Info.plist" "$ROOT" "$CONFIGURATION" "$STAGE/icon-info.plist" <<'PY'
+/usr/bin/python3 - "$STAGED_APP/Contents/Info.plist" "$ROOT" "$CONFIGURATION" "$STAGE/icon-info.plist" "$MODE" <<'PY'
 import os,plistlib,sys
 with open(sys.argv[1], 'wb') as f:
     info=dict(CFBundleExecutable='PaperReview', CFBundleIdentifier='local.paperreview.mac',
         CFBundleName='作文批阅', CFBundleDisplayName='作文批阅', CFBundlePackageType='APPL',
-        CFBundleShortVersionString='0.1.2', CFBundleVersion='3', LSMinimumSystemVersion='14.0',
+        CFBundleShortVersionString='0.1.3', CFBundleVersion='4', LSMinimumSystemVersion='14.0',
         NSPrincipalClass='NSApplication', NSHighResolutionCapable=True,
         NSAppTransportSecurity=dict(NSAllowsLocalNetworking=True))
-    if sys.argv[3]=='debug': info['PaperReviewProjectRoot']=sys.argv[2]
+    if sys.argv[5]=='--ui-preview':
+        info.update(CFBundleIdentifier='local.paperreview.ui-v12-qa',
+            CFBundleName='作文批阅·界面验证',CFBundleDisplayName='作文批阅·界面验证')
+    elif sys.argv[3]=='debug': info['PaperReviewProjectRoot']=sys.argv[2]
     with open(sys.argv[4], 'rb') as icons: info.update(plistlib.load(icons))
     plistlib.dump(info, f)
 os.unlink(sys.argv[4])
@@ -86,6 +109,11 @@ if [[ "$SIGNING_IDENTITY" == "-" ]]; then
 fi
 /usr/bin/codesign --force --sign "$SIGNING_IDENTITY" --timestamp=none "$STAGED_APP"
 /usr/bin/codesign --verify --deep --strict "$STAGED_APP"
+NEXT_REQUIREMENT="$(/usr/bin/codesign --display --requirements - "$STAGED_APP" 2>&1 | sed -n '/^designated => /p')"
+if ! signing_continuity_is_valid "$CURRENT_SIGNER" "$CURRENT_REQUIREMENT" "$NEXT_REQUIREMENT"; then
+  echo '开发签名身份发生变化，已停止替换以保留原有权限。请恢复原证书，或明确指定 PAPERREVIEW_SIGNING_IDENTITY。' >&2
+  exit 1
+fi
 for pid in $(pgrep -x "$APP_NAME" || true); do
   command="$(ps -p "$pid" -o command= || true)"
   if [[ "$command" == "$APP/Contents/MacOS/$APP_NAME"* || "$command" == "$APP_LINK/Contents/MacOS/$APP_NAME"* ]]; then
@@ -119,6 +147,9 @@ fi
 case "$MODE" in
   --build-only|--release) echo "$APP";;
   run) /usr/bin/open -n "$APP" --args "$@";;
+  --ui-preview)
+    PREVIEW_HOME="$HOME/Library/Application Support/PaperReview-UIPreview"
+    /usr/bin/open -n "$APP" --args --data-root "$PREVIEW_HOME/Assignments" -modelHome "$PREVIEW_HOME/Models" "$@";;
   --verify)
     /usr/bin/open -n "$APP" --args "$@"
     for _ in 1 2 3 4 5; do

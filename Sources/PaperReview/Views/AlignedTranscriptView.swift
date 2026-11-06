@@ -12,7 +12,7 @@ struct AlignedTranscriptView: NSViewRepresentable {
     func updateNSView(_ view: TranscriptPageView, context: Context) {
         view.transcript = transcript; view.issues = issues; view.selectedIssueID = selectedIssueID
         view.uncertainLineIDs = uncertainLineIDs; view.onLineClick = onLineClick; view.needsDisplay = true
-        view.setAccessibilityLabel("忠实转写。" + transcript.text)
+        view.setAccessibilityLabel("转写。" + transcript.text)
         view.setAccessibilityRole(.textArea)
         view.setAccessibilityElement(true)
     }
@@ -82,20 +82,27 @@ final class TranscriptPageView: NSView {
     func requiredHeight(width: CGFloat, pageHeight: CGFloat) -> CGFloat {
         max(pageHeight, (lineLayouts(width: width, pageHeight: pageHeight).map { $0.1.maxY }.max() ?? 0) + 22 * zoom)
     }
+    func focusRect(for issue: ReviewIssue) -> NSRect? {
+        guard let transcript, issue.revision == transcript.revision,
+              let row = lineLayouts(width: bounds.width, pageHeight: pageHeight).first(where: { $0.0.id == issue.lineID }) else { return nil }
+        let displayed = lineText(row.0, in: transcript)
+        return TextDrawing.rangeRect(NSRange(location: issue.start - row.0.start - displayed.leading, length: issue.length),
+            text: displayed.text, rect: row.1, font: TextDrawing.font(zoom: zoom))
+    }
     override func draw(_ dirtyRect: NSRect) {
         (paperBackground ? NSColor.white : WorkspaceStyle.pageColor).setFill(); bounds.fill()
         guard let transcript else { return }
         for (line, rect) in lineLayouts(width: bounds.width, pageHeight: pageHeight > 0 ? pageHeight : bounds.height) {
             let displayed = lineText(line, in: transcript)
             if issues.contains(where: { $0.id == selectedIssueID && $0.lineID == line.id }) {
-                WorkspaceStyle.selectionColor.withAlphaComponent(0.5).setFill()
+                WorkspaceStyle.selectionColor.withAlphaComponent(0.15).setFill()
                 rect.insetBy(dx: -5, dy: -4).fill()
             }
             let visible = NSRange(location: line.start + displayed.leading, length: max(0, line.length - displayed.leading))
-            let highlights = issues.filter { $0.revision == transcript.revision && NSIntersectionRange($0.range, visible).length > 0 }.map { issue in
+            let marks = issues.filter { $0.revision == transcript.revision && NSIntersectionRange($0.range, visible).length > 0 }.map { issue in
                 let span = NSIntersectionRange(issue.range, visible)
                 return (NSRange(location: span.location - line.start - displayed.leading, length: span.length),
-                 issue.kind == .spelling ? NSColor.systemRed.withAlphaComponent(0.23) : NSColor.systemOrange.withAlphaComponent(0.25))
+                 issue.id == selectedIssueID ? WorkspaceStyle.photoFocusColor : issue.kind == .spelling ? WorkspaceStyle.spellingColor : WorkspaceStyle.grammarColor)
             }
             var uncertain = wordRegions.filter { $0.lineID == line.id && uncertainWordRects.contains($0.rect) }.compactMap { word -> NSRange? in
                 guard let range = word.range else { return nil }
@@ -106,7 +113,9 @@ final class TranscriptPageView: NSView {
                 return overlap.length > 0 ? NSRange(location: overlap.location - line.start - displayed.leading, length: overlap.length) : nil
             }
             TextDrawing.draw(displayed.text, in: rect,
-                             font: TextDrawing.font(zoom: zoom), color: paperBackground ? .black : .textColor, highlights: highlights, uncertainties: uncertain)
+                             font: TextDrawing.font(zoom: zoom), color: paperBackground ? .black : .textColor,
+                             highlights: marks.filter { $0.1 == WorkspaceStyle.photoFocusColor }.map { ($0.0, $0.1.withAlphaComponent(0.12)) },
+                             uncertainties: uncertain, underlines: marks)
         }
     }
     override func mouseDown(with event: NSEvent) {
@@ -127,7 +136,7 @@ final class TranscriptPageView: NSView {
     }
     override func menu(for event: NSEvent) -> NSMenu? {
         let menu = NSMenu()
-        let item = NSMenuItem(title: "复制忠实原文", action: #selector(copyTranscript), keyEquivalent: "c")
+        let item = NSMenuItem(title: "复制识别结果", action: #selector(copyTranscript), keyEquivalent: "c")
         item.target = self; menu.addItem(item)
         return menu
     }

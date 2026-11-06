@@ -18,7 +18,8 @@ public enum MarkdownExport {
     }
 
     /// Corrections remain appended suggestions; the original section is never edited.
-    public static func annotated(_ transcript: Transcript, issues: [ReviewIssue], humanConfirmed: Bool) -> String {
+    public static func annotated(_ transcript: Transcript, issues: [ReviewIssue], humanConfirmed: Bool, teacherReview: TeacherReview? = nil) -> String {
+        if let teacherReview { return teacherAnnotated(transcript, issues: issues, review: teacherReview) }
         var output = original(transcript)
         output += "\n\n---\n\n## 基础审核批注\n\n"
         output += humanConfirmed ? "原文已由老师核对。\n\n" : "以下为模型建议，请老师确认。\n\n"
@@ -30,6 +31,29 @@ public enum MarkdownExport {
         }
         return output
     }
+    private static func teacherAnnotated(_ transcript: Transcript, issues: [ReviewIssue], review: TeacherReview) -> String {
+        var output = original(transcript) + "\n\n---\n\n## 批注\n\n"
+        let annotations = review.confirmed
+        if annotations.isEmpty { output += "暂无批注。\n" }
+        for (index, decision) in annotations.enumerated() {
+            output += "\(index + 1). **\(decision.issue.kind.title)**：\(code(decision.issue.quote))\n"
+            if !decision.isAnchored(in: transcript) { output += "   位置待确认（对应较早版本的识别稿）。\n" }
+            output += "   建议：\(code(decision.suggestion))。\(decision.explanation.replacingOccurrences(of: "\n", with: " "))\n\n"
+        }
+        let pending = review.pending(issues)
+        if !pending.isEmpty {
+            output += "\n## 待确认批注\n\n"
+            for issue in pending { output += "- \(code(issue.quote)) → \(code(issue.suggestion))：\(issue.explanation)\n" }
+        }
+        let kept = review.discarded
+        if !kept.isEmpty {
+            output += "\n## 已放弃的建议\n\n"
+            for decision in kept { output += "- \(code(decision.issue.quote)) → \(code(decision.suggestion))\n" }
+        }
+        if !review.comment.isEmpty { output += "\n## 评语\n\n" + review.comment + "\n" }
+        return output
+    }
+
     private static func code(_ value: String) -> String {
         var fence = "`"
         while value.contains(fence) { fence += "`" }

@@ -1,177 +1,195 @@
 import SwiftUI
+import AppKit
 import PaperReviewCore
 
 struct ReviewInspector: View {
     @Bindable var store: WorkspaceStore
     let job: Assignment?
-    @State private var showDismissed = false
-    @State private var showingUnadopted = false
+    @Binding var processed: Bool
+    @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.colorSchemeContrast) private var contrast
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+    @Environment(\.undoManager) private var undoManager
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var showingUnadopted = false
+    @State private var showingDiscarded = false
+    @FocusState private var listFocused: Bool
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            HStack(spacing: 12) {
-                Text("基础审核").font(.system(size: 16, weight: .semibold))
-                Spacer()
-                if let job, job.record.phase == .reviewing { ProgressView().controlSize(.small) }
-                if let job, job.record.phase == .complete {
-                    Text("\(job.record.activeIssues.count) 条建议").font(.system(size: 13)).monospacedDigit()
-                        .foregroundStyle(.secondary).fixedSize()
-                    Menu {
-                        Toggle("显示已忽略建议", isOn: $showDismissed)
-                        Button("重新审核") { store.retry(job) }
-                    } label: { Image(systemName: "ellipsis.circle").font(.system(size: 15)).frame(width: 28, height: 28) }
-                        .menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize().help("审核选项")
-                }
-            }.padding(.horizontal, 20).frame(height: 60)
-            Divider()
             if let job {
-                if job.record.phase == .complete {
-                    completed(job)
-                } else {
-                    VStack(alignment: .leading, spacing: 15) {
-                        Text(inspectorTitle(job)).font(.headline)
-                        if job.record.phase == .failed && job.record.failedPhase == .reviewing {
-                            Button("重试基础审核") { store.retry(job) }.disabled(store.activeID == job.id)
-                        }
-                        if job.record.phase == .needsConfirmation {
-                            Button("继续基础审核") { store.retry(job) }.disabled(store.activeID == job.id)
-                        }
-                    }.padding(20)
-                    Spacer()
-                }
+                HStack(spacing: 8) {
+                    Picker("建议列表", selection: $processed) {
+                        Text("已发现问题 \(job.record.pendingIssues.count)").tag(false)
+                        Text("已确认项 \(job.record.review.confirmed.count)").tag(true)
+                    }.pickerStyle(.segmented).controlSize(.large).labelsHidden()
+                    Spacer(minLength: 0)
+                    Button { showingDiscarded = true } label: { Image(systemName: "trash") }
+                        .buttonStyle(.borderless).frame(width: 24, height: WorkspaceGrid.controlHeight)
+                        .help("已放弃的问题（\(job.record.review.discarded.count)）")
+                        .accessibilityLabel("已放弃的问题，\(job.record.review.discarded.count) 项")
+                        .disabled(job.record.review.discarded.isEmpty)
+                    .popover(isPresented: $showingDiscarded, arrowEdge: .top) {
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("已放弃的问题").font(.headline).padding(.horizontal, 18)
+                            history(job, resolution: .keepOriginal)
+                        }.padding(.vertical, 20).frame(width: 340, height: 360)
+                    }
+                }.frame(height: WorkspaceGrid.controlHeight)
+                    .padding(.horizontal, WorkspaceGrid.paneInset).padding(.top, 8)
+                    .frame(height: WorkspaceGrid.contextHeight, alignment: .top)
+                if processed { history(job, resolution: .annotation) }
+                else if !job.record.pendingIssues.isEmpty { suggestions(job) }
+                else { emptyState(job) }
             } else {
-                Text("等待作业")
-                    .font(.callout).foregroundStyle(.secondary).padding(20)
+                Text("导入作业后，建议会显示在这里。").font(.callout).foregroundStyle(.secondary).padding(20)
                 Spacer()
             }
-        }.background(WorkspaceStyle.panel)
+            Divider()
+            HStack {
+                if let job, unadoptedCount(job) > 0 {
+                    Button { showingUnadopted = true } label: {
+                        HStack { Text("\(unadoptedCount(job)) 条模型建议未采用"); Spacer(); Image(systemName: "chevron.right") }
+                    }.buttonStyle(.plain).font(.system(size: 12)).foregroundStyle(.secondary)
+                        .popover(isPresented: $showingUnadopted, arrowEdge: .bottom) {
+                            UnadoptedReviewView(store: store, job: job).padding(20).frame(width: 380)
+                        }
+                } else { Spacer(minLength: 0) }
+            }.padding(.horizontal, WorkspaceGrid.paneInset).frame(height: WorkspaceGrid.footerHeight)
+        }
+        .background {
+            WorkspaceStyle.panel.opacity(reduceTransparency || contrast == .increased ? 1 : colorScheme == .light ? 0.86 : 0.3)
+                .ignoresSafeArea()
+        }
+        .onChange(of: job?.id) { _, _ in showingUnadopted = false; showingDiscarded = false }
     }
 
-    private func completed(_ job: Assignment) -> some View {
-        VStack(alignment: .leading, spacing: 0) {
-            if unadoptedCount(job) > 0 {
-                Button { showingUnadopted = true } label: {
-                    HStack {
-                        Text("\(unadoptedCount(job)) 条建议未采用")
-                        Spacer()
-                        Image(systemName: "chevron.right").font(.caption2)
-                    }.contentShape(Rectangle())
-                }.buttonStyle(.plain).font(.system(size: 13)).foregroundStyle(.secondary)
-                    .padding(.horizontal, 22).padding(.vertical, 14)
-                    .popover(isPresented: $showingUnadopted) { unadoptedDetails(job).padding(20).frame(width: 380) }
-                Divider().padding(.horizontal, 22)
-            }
-            if job.record.activeIssues.isEmpty && !showDismissed {
-                VStack(alignment: .leading, spacing: 10) {
-                    Image(systemName: unadoptedCount(job) > 0 ? "text.bubble" : "checkmark.circle").font(.title2).foregroundStyle(.secondary)
-                    Text(unadoptedCount(job) > 0 ? "暂无可用批注" : "未发现明确的基础错误").font(.headline)
-                    if unadoptedCount(job) > 0 { Button("重新审核") { store.retry(job) } }
-                }.padding(20)
-                Spacer()
-            } else {
-                ScrollViewReader { proxy in
-                    ScrollView {
-                        LazyVStack(spacing: 0) {
-                            ForEach(job.record.issues.filter { showDismissed || !$0.dismissed }.sorted { $0.start < $1.start }) { issue in
-                                issueRow(issue, job: job).id(issue.id)
-                                Divider().padding(.horizontal, 22)
-                            }
-                        }
-                    }
-                    .onChange(of: store.selectedIssueID) { _, value in
-                        if let value { withAnimation(reduceMotion ? nil : .easeOut(duration: 0.18)) { proxy.scrollTo(value, anchor: .center) } }
-                    }
-                }
-            }
-        }
-    }
-    private func unadoptedCount(_ job: Assignment) -> Int {
-        job.record.rejectedIssues + (job.record.deferredReviewIssues?.count ?? 0)
-    }
-    private func unadoptedDetails(_ job: Assignment) -> some View {
-        VStack(alignment: .leading, spacing: 14) {
-            Text("未采用的建议").font(.headline)
+    private func suggestions(_ job: Assignment) -> some View {
+        ScrollViewReader { proxy in
             ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
-                    if job.record.reviewRejections == nil && job.record.rejectedIssues > 0 {
-                        Text("这条旧记录只保存了数量，没有保存具体原因。重新审核后可查看详情。")
-                            .font(.callout).foregroundStyle(.secondary)
-                    }
-                    ForEach(job.record.reviewRejections ?? []) { rejection in
-                        let reason = currentReason(rejection, job: job)
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text(reason.title).font(.callout.weight(.semibold))
-                            Text("\(rejection.proposal.quote.isEmpty ? "（没有原词引用）" : rejection.proposal.quote) → \(rejection.proposal.suggestion)")
-                                .font(.body).textSelection(.enabled)
-                            if reason == .invalidLine || reason == .quoteNotFound || reason == .occurrenceOutOfBounds {
-                                Text("模型指定第 \(rejection.proposal.line) 行，第 \(rejection.proposal.occurrence) 次出现。")
-                                    .font(.callout).foregroundStyle(.secondary)
-                            }
-                        }.frame(maxWidth: .infinity, alignment: .leading)
-                    }
-                    ForEach(job.record.deferredReviewIssues ?? []) { issue in
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text("词区识别仍有分歧，暂不批注").font(.callout.weight(.semibold))
-                            Text("\(issue.quote) → \(issue.suggestion)").font(.body).textSelection(.enabled)
-                        }.frame(maxWidth: .infinity, alignment: .leading)
-                    }
-                }
-            }.frame(maxHeight: 320)
-            if job.recoverableReviewCount > 0 {
-                Button("重新定位 \(job.recoverableReviewCount) 条建议") {
-                    showingUnadopted = false; store.reanchorReview(job)
-                }.disabled(store.activeID != nil)
+                LazyVStack(spacing: 8) {
+                    ForEach(job.record.pendingIssues) { issue in issueRow(issue, job: job).id(issue.id) }
+                }.background(ReviewScrollAppearance())
+                    .padding(.horizontal, WorkspaceGrid.paneInset)
+                    .padding(.top, WorkspaceGrid.paneInset).padding(.bottom, 16)
             }
-            Button("重新审核") { showingUnadopted = false; store.retry(job) }.disabled(store.activeID == job.id)
+            .focusable().focused($listFocused)
+            .onKeyPress(.downArrow) { moveSelection(job, by: 1); return .handled }
+            .onKeyPress(.upArrow) { moveSelection(job, by: -1); return .handled }
+            .onChange(of: store.selectedIssueID) { _, id in
+                if let id { withAnimation(reduceMotion ? nil : .easeOut(duration: 0.15)) { proxy.scrollTo(id) } }
+            }
         }
-    }
-    private func currentReason(_ rejection: RejectedReviewIssue, job: Assignment) -> ReviewRejectionReason {
-        guard let transcript = job.record.transcript else { return rejection.reason }
-        return IssueAnchoring.anchor([rejection.proposal], to: transcript).rejections.first?.reason ?? rejection.reason
     }
     private func issueRow(_ issue: ReviewIssue, job: Assignment) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Label(issue.kind.title, systemImage: issue.kind == .spelling ? "character.cursor.ibeam" : "textformat.abc")
-                    .font(.caption.weight(.medium)).foregroundStyle(issue.kind == .spelling ? Color.red : Color.orange)
-                Spacer()
-                Text("第 \(issue.lineID) 行").font(.caption).monospacedDigit().foregroundStyle(.secondary)
-            }
+        let selected = store.selectedIssueID == issue.id
+        return VStack(alignment: .leading, spacing: 14) {
             Button { store.selectedIssueID = issue.id } label: {
-                VStack(alignment: .leading, spacing: 10) {
+                VStack(alignment: .leading, spacing: 9) {
+                    HStack {
+                        Text(issue.kind.title)
+                            .foregroundStyle(issue.kind == .spelling ? Color(nsColor: WorkspaceStyle.spellingColor) : Color(nsColor: WorkspaceStyle.grammarColor))
+                        Spacer()
+                        Text("第 \(issue.lineID) 行").foregroundStyle(.secondary)
+                    }.font(.system(size: 11, weight: .medium))
                     ViewThatFits(in: .horizontal) {
-                        HStack(alignment: .firstTextBaseline, spacing: 9) {
+                        HStack(alignment: .firstTextBaseline, spacing: 8) {
                             Text(issue.quote).foregroundStyle(.secondary)
-                            Image(systemName: "arrow.right").font(.system(size: 12)).foregroundStyle(.secondary)
+                            Image(systemName: "arrow.right").font(.system(size: 11)).foregroundStyle(.secondary)
                             Text(issue.suggestion.isEmpty ? "建议删除" : issue.suggestion)
                         }.fixedSize(horizontal: true, vertical: false)
-                        VStack(alignment: .leading, spacing: 7) {
-                            Text(issue.quote).foregroundStyle(.secondary).lineLimit(4)
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text(issue.quote).foregroundStyle(.secondary)
                             Label(issue.suggestion.isEmpty ? "建议删除" : issue.suggestion, systemImage: "arrow.turn.down.right")
                         }
-                    }
-                    .font(.system(size: 16, weight: .medium))
-                    Text(issue.explanation).font(.system(size: 14)).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                    }.font(.system(size: 16, weight: selected ? .semibold : .medium))
                 }.frame(maxWidth: .infinity, alignment: .leading).contentShape(Rectangle())
-            }.buttonStyle(.plain).help("在照片中定位原词")
-            HStack {
-                if issue.dismissed { Text("已忽略").foregroundStyle(.secondary) }
-                Spacer()
-                Button(issue.dismissed ? "恢复建议" : "忽略") { store.toggleDismiss(job, issueID: issue.id) }
-                    .buttonStyle(.borderless).foregroundStyle(.secondary)
-            }.font(.caption)
-        }
-        .padding(.horizontal, 22).padding(.vertical, 19)
-        .background(store.selectedIssueID == issue.id ? WorkspaceStyle.selection.opacity(0.5) : Color.clear)
+            }.buttonStyle(.plain).help("定位原稿与识别稿中的问题词")
+                .accessibilityAddTraits(selected ? .isSelected : [])
+            if selected {
+                if let transcript = job.record.transcript, let context = ReviewSentence.context(for: issue, in: transcript) {
+                    Text(contextText(context)).font(.system(size: 14)).lineSpacing(5).textSelection(.enabled)
+                }
+                Text(issue.explanation).font(.system(size: 13)).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                HStack(spacing: 10) {
+                    Button("确认") { store.resolve(job, issue: issue, as: .annotation, undoManager: undoManager) }
+                        .buttonStyle(WorkspacePrimaryButtonStyle())
+                    Button("放弃") { store.resolve(job, issue: issue, as: .keepOriginal, undoManager: undoManager) }
+                        .buttonStyle(.borderless)
+                }.controlSize(.regular).disabled(store.activeID == job.id || job.savingReview)
+            }
+        }.padding(14)
+            .background(selected ? WorkspaceStyle.selection.opacity(0.38) : Color.clear, in: RoundedRectangle(cornerRadius: 10))
+            .overlay {
+                if selected && contrast == .increased {
+                    RoundedRectangle(cornerRadius: 10).strokeBorder(WorkspaceStyle.border, lineWidth: 1)
+                }
+            }
+            .overlay(alignment: .bottom) { if !selected { Divider().padding(.horizontal, 14) } }
     }
-    private func inspectorTitle(_ job: Assignment) -> String {
-        switch job.record.phase {
-        case .reviewing: "正在检查基础错误"
-        case .needsConfirmation: "可继续基础审核"
-        case .scoring: "等待 Jev 复核"
-        case .failed: "审核尚未完成"
-        case .cancelled: "处理已暂停"
-        default: "等待忠实转写"
+    private func contextText(_ context: ReviewSentence) -> AttributedString {
+        let value = NSMutableAttributedString(string: context.text)
+        value.addAttributes([.foregroundColor: WorkspaceStyle.photoFocusColor, .underlineStyle: NSUnderlineStyle.single.rawValue], range: context.quoteRange)
+        return AttributedString(value)
+    }
+    private func history(_ job: Assignment, resolution: TeacherResolution) -> some View {
+        let decisions = resolution == .annotation ? job.record.review.confirmed : job.record.review.discarded
+        return ScrollView {
+            LazyVStack(alignment: .leading, spacing: 0) {
+                ForEach(decisions.sorted { $0.issue.start < $1.issue.start }) { decision in
+                    VStack(alignment: .leading, spacing: 10) {
+                        HStack {
+                            Label(decision.resolution == .annotation ? "已确认" : "已放弃",
+                                systemImage: decision.resolution == .annotation ? "checkmark" : "xmark")
+                            Spacer()
+                            if job.record.transcript.map({ decision.isAnchored(in: $0) }) != true {
+                                Text("位置待确认").foregroundStyle(Color(nsColor: WorkspaceStyle.warningColor))
+                            }
+                        }.font(.system(size: 11)).foregroundStyle(.secondary)
+                        Text(decision.issue.quote).font(.system(size: 16, weight: .medium)).textSelection(.enabled)
+                        if decision.resolution == .annotation {
+                            Text(decision.suggestion.isEmpty ? "建议删除" : decision.suggestion).font(.system(size: 14))
+                            Text(decision.explanation).font(.system(size: 13)).foregroundStyle(.secondary)
+                        }
+                        if job.record.transcript.map({ decision.isAnchored(in: $0) }) == true,
+                           job.record.issues.contains(where: { decision.matches($0) }) {
+                            Button("重新确认") {
+                                store.restoreSuggestion(decision, job: job, undoManager: undoManager)
+                                showingDiscarded = false
+                            }
+                                .buttonStyle(.borderless).font(.system(size: 12)).disabled(job.savingReview || store.activeID == job.id)
+                        } else { Text("历史记录").font(.system(size: 12)).foregroundStyle(.secondary) }
+                    }.padding(18)
+                    Divider().padding(.horizontal, 18)
+                }
+                if decisions.isEmpty { Text(resolution == .annotation ? "暂无已确认项" : "暂无已放弃的问题").font(.callout).foregroundStyle(.secondary).padding(20) }
+            }.background(ReviewScrollAppearance())
         }
     }
+    private func emptyState(_ job: Assignment) -> some View {
+        VStack(spacing: 12) {
+            if job.record.phase == .complete {
+                Image(systemName: job.isReviewed ? "checkmark.circle" : "text.bubble").font(.system(size: 28, weight: .light)).foregroundStyle(.secondary)
+                Text(job.isReviewed ? "这份作业已批阅" : job.record.review.decisions.isEmpty ? "未发现明确的基础错误" : "没有待确认的问题")
+                    .font(.system(size: 15, weight: .semibold))
+                if !job.isReviewed { Text("可在顶部确认完成批阅。").font(.callout).foregroundStyle(.secondary) }
+            } else {
+                if job.record.phase.isRunning { LiquidDotsLoader() }
+                Text(job.record.phase == .reviewing ? "正在检查基础错误" : job.record.phase == .failed ? "分析尚未完成" : job.record.phase == .cancelled ? "处理已暂停" : "等待识别稿")
+                    .font(.system(size: 14, weight: .medium))
+                if job.record.phase == .failed || job.record.phase == .cancelled {
+                    Button("继续处理") { store.retry(job) }.disabled(store.activeID == job.id)
+                }
+            }
+            Spacer()
+        }.multilineTextAlignment(.center).padding(20)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+    }
+    private func moveSelection(_ job: Assignment, by delta: Int) {
+        let issues = job.record.pendingIssues
+        guard !issues.isEmpty else { return }
+        let index = issues.firstIndex { $0.id == store.selectedIssueID } ?? (delta > 0 ? -1 : issues.count)
+        store.selectedIssueID = issues[min(issues.count - 1, max(0, index + delta))].id
+    }
+    private func unadoptedCount(_ job: Assignment) -> Int { job.record.rejectedIssues + (job.record.deferredReviewIssues?.count ?? 0) }
 }

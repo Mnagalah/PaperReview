@@ -32,6 +32,9 @@ struct PairedDocumentView: NSViewRepresentable {
     let onWipeChange: (Double) -> Void
     let onLineClick: (Int) -> Void
     let onIssueClick: (UUID) -> Void
+    var sourceOnly = false
+    var position: CGPoint = .zero
+    var onPositionChange: (CGPoint) -> Void = { _ in }
     func makeNSView(context: Context) -> PairedScrollView { PairedScrollView() }
     func updateNSView(_ view: PairedScrollView, context: Context) {
         view.source.image = image
@@ -50,6 +53,10 @@ struct PairedDocumentView: NSViewRepresentable {
         view.text.setAccessibilityLabel("识别原文。" + (transcript?.text ?? ""))
         view.aspect = aspect; view.zoom = zoom; view.mode = mode; view.wipeFraction = wipeFraction
         view.onZoomChange = onZoomChange; view.onWipeChange = onWipeChange
+        view.sourceOnly = sourceOnly
+        view.onPositionChange = onPositionChange
+        view.restorePosition(position)
+        view.focusIssueID = selectedIssueID
         view.needsLayout = true; view.source.needsDisplay = true; view.text.needsDisplay = true
     }
 }
@@ -68,6 +75,11 @@ final class PairedScrollView: NSView {
     var wipeFraction = 0.5
     var onZoomChange: ((Double) -> Void)?
     var onWipeChange: ((Double) -> Void)?
+    var sourceOnly = false
+    var onPositionChange: ((CGPoint) -> Void)?
+    var focusIssueID: UUID?
+    private var lastFocusedID: UUID?
+    private var pendingPosition: CGPoint?
     private var installedMode: ComparisonMode?
     private var pinchStart = 1.0
     private var syncing = false
@@ -98,7 +110,7 @@ final class PairedScrollView: NSView {
     override func layout() {
         super.layout()
         syncing = true
-        let margin: CGFloat = 22, gap: CGFloat = 22
+        let margin = WorkspaceGrid.paneInset, gap = WorkspaceGrid.documentGap
         let changed = installedMode != mode
         let oldPrimary = installedMode == .wipe ? overlay : left
         let oldPoint = oldPrimary.contentView.bounds.origin
@@ -113,13 +125,13 @@ final class PairedScrollView: NSView {
             } else { left.documentView = source; right.documentView = text }
             installedMode = mode
         }
-        left.isHidden = mode == .wipe; right.isHidden = mode == .wipe
+        left.isHidden = mode == .wipe; right.isHidden = mode == .wipe || sourceOnly
         overlay.isHidden = mode != .wipe; divider.isHidden = mode != .wipe
         text.paperBackground = mode == .wipe
         let fullWidth = max(1, bounds.width - margin * 2)
         let fullHeight = max(1, bounds.height - margin * 2)
-        let pane = mode == .sideBySide ? max(1, (fullWidth - gap) / 2) : fullWidth
-        let paneHeight = mode == .stacked ? max(1, (fullHeight - gap) / 2) : fullHeight
+        let pane = mode == .sideBySide && !sourceOnly ? max(1, (fullWidth - gap) / 2) : fullWidth
+        let paneHeight = mode == .stacked && !sourceOnly ? max(1, (fullHeight - gap) / 2) : fullHeight
         left.frame = NSRect(x: margin, y: margin, width: pane, height: paneHeight)
         right.frame = NSRect(x: mode == .sideBySide ? margin + pane + gap : margin,
             y: mode == .stacked ? margin + paneHeight + gap : margin, width: pane, height: paneHeight)
@@ -134,19 +146,34 @@ final class PairedScrollView: NSView {
         let size = NSSize(width: documentWidth, height: height)
         source.frame = NSRect(origin: .zero, size: size); text.frame = NSRect(origin: .zero, size: size)
         wipeCanvas.frame = NSRect(origin: .zero, size: size)
-        let point = changed && oldSize.width > 0 && oldSize.height > 0
+        let point = pendingPosition ?? (changed && oldSize.width > 0 && oldSize.height > 0
             ? NSPoint(x: oldPoint.x / oldSize.width * size.width, y: oldPoint.y / oldSize.height * size.height)
-            : primary.contentView.bounds.origin
+            : primary.contentView.bounds.origin)
+        pendingPosition = nil
         for scroll in mode == .wipe ? [overlay] : [left, right] {
             scroll.contentView.scroll(to: point); scroll.reflectScrolledClipView(scroll.contentView)
         }
         updateWipe()
         syncing = false
+        focusSelectionIfNeeded()
+    }
+    func restorePosition(_ point: CGPoint) {
+        let current = primary.contentView.bounds.origin
+        if abs(point.x - current.x) > 1 || abs(point.y - current.y) > 1 { pendingPosition = point }
+    }
+    private func focusSelectionIfNeeded() {
+        guard focusIssueID != lastFocusedID else { return }
+        lastFocusedID = focusIssueID
+        guard let id = focusIssueID, let issue = text.issues.first(where: { $0.id == id }),
+              let rect = text.focusRect(for: issue) else { return }
+        let scroll = mode == .wipe ? overlay : right
+        let target = rect.insetBy(dx: -16, dy: -16)
+        if !scroll.documentVisibleRect.contains(target) { text.scrollToVisible(target) }
     }
     @objc private func scrolled(_ note: Notification) {
         guard !syncing, let clip = note.object as? NSClipView else { return }
         if mode == .wipe {
-            if clip === overlay.contentView { updateWipe() }
+            if clip === overlay.contentView { updateWipe(); onPositionChange?(clip.bounds.origin) }
             return
         }
         guard clip === left.contentView || clip === right.contentView else { return }
@@ -155,6 +182,7 @@ final class PairedScrollView: NSView {
         other.contentView.scroll(to: clip.bounds.origin)
         other.reflectScrolledClipView(other.contentView)
         syncing = false
+        onPositionChange?(clip.bounds.origin)
     }
     private func updateWipe() {
         guard mode == .wipe else { return }
@@ -191,7 +219,7 @@ final class PairedScrollView: NSView {
         for scroll in mode == .wipe ? [overlay] : [left, right] {
             scroll.contentView.scroll(to: target); scroll.reflectScrolledClipView(scroll.contentView)
         }
-        syncing = false; updateWipe(); onZoomChange?(next)
+        syncing = false; updateWipe(); onZoomChange?(next); onPositionChange?(primary.contentView.bounds.origin)
     }
 }
 
@@ -221,7 +249,7 @@ private final class WipeDividerView: NSView {
     override func accessibilityPerformDecrement() -> Bool { onChange?(max(0, fraction - 0.05)); return true }
     override func resetCursorRects() { addCursorRect(bounds, cursor: .resizeLeftRight) }
     override func draw(_ dirtyRect: NSRect) {
-        WorkspaceStyle.photoFocusColor.setFill()
+        WorkspaceStyle.imageFocusColor.setFill()
         NSRect(x: bounds.midX - 1, y: 0, width: 2, height: bounds.height).fill()
         let knob = NSRect(x: 1, y: bounds.midY - 20, width: 18, height: 40)
         NSBezierPath(roundedRect: knob, xRadius: 8, yRadius: 8).fill()
@@ -239,6 +267,8 @@ private final class WipeDividerView: NSView {
     override func keyDown(with event: NSEvent) {
         if event.keyCode == 123 { _ = accessibilityPerformDecrement() }
         else if event.keyCode == 124 { _ = accessibilityPerformIncrement() }
+        else if event.keyCode == 115 { onChange?(0) }
+        else if event.keyCode == 119 { onChange?(1) }
         else { super.keyDown(with: event) }
     }
 }
@@ -275,8 +305,8 @@ final class SourcePageView: NSView {
             }
             for box in boxes {
                 let rect = pixelRect(box, imageHeight: imageHeight).insetBy(dx: -3, dy: -3)
-                WorkspaceStyle.photoFocusColor.withAlphaComponent(0.08).setFill(); rect.fill()
-                WorkspaceStyle.photoFocusColor.setStroke(); NSBezierPath(roundedRect: rect, xRadius: 3, yRadius: 3).stroke()
+                WorkspaceStyle.imageFocusColor.withAlphaComponent(0.08).setFill(); rect.fill()
+                WorkspaceStyle.imageFocusColor.setStroke(); NSBezierPath(roundedRect: rect, xRadius: 3, yRadius: 3).stroke()
             }
         }
     }

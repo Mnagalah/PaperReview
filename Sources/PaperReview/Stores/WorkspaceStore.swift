@@ -15,7 +15,6 @@ struct DuplicatePhoto: Identifiable {
     var selectedID: UUID?
     var selectedIssueID: UUID?
     var showingSettings = false
-    var showingInspector = true
     var globalError: String?
     var duplicatePhotos: [DuplicatePhoto] = []
     let models: any ModelModule
@@ -30,7 +29,9 @@ struct DuplicatePhoto: Identifiable {
     private struct CachedReading { let text: String? }
     private var wordReadings: [String: CachedReading] = [:]
     private var wordScores: [String: Double] = [:]
-    private let repository: AssignmentRepository
+    let repository: AssignmentRepository
+    @ObservationIgnored var readingSaves: [UUID: Task<Void, Never>] = [:]
+    @ObservationIgnored var reviewSaves: [UUID: Task<Void, Never>] = [:]
     private let processor = PhotoProcessor()
     private func structureVersion(_ page: PreparedPage) -> String { page.scan.version + ":" + PageScaffolding.version }
     var selected: Assignment? { assignments.first { $0.id == selectedID } }
@@ -59,6 +60,8 @@ struct DuplicatePhoto: Identifiable {
                 return Assignment(record: record)
             }
             selectedID = assignments.last?.id
+            for job in assignments { job.reading = (try? await repository.readingState(id: job.id)) ?? ReadingState() }
+            selectedIssueID = selected?.reading.selectedIssueID ?? selected?.record.pendingIssues.first?.id
             if let selected { await hydrate(selected) }
         } catch { globalError = "无法读取本机作业记录：\(error.localizedDescription)" }
         await checkModels()
@@ -69,7 +72,9 @@ struct DuplicatePhoto: Identifiable {
     }
 
     func select(_ id: UUID?) {
-        selectedID = id; selectedIssueID = nil
+        if let selected { selected.reading.selectedIssueID = selectedIssueID; saveReading(selected) }
+        selectedID = id
+        selectedIssueID = selected?.reading.selectedIssueID ?? selected?.record.pendingIssues.first?.id
         guard let job = selected else { return }
         Task { await hydrate(job) }
     }
@@ -129,7 +134,7 @@ struct DuplicatePhoto: Identifiable {
 
     func canDelete(_ job: Assignment) -> Bool {
         assignments.contains { $0.id == job.id } && activeID != job.id && !job.record.phase.isRunning
-            && !restarting.contains(job.id) && !deleting.contains(job.id) && !hydrating.contains(job.id)
+            && !restarting.contains(job.id) && !deleting.contains(job.id) && !hydrating.contains(job.id) && !job.savingReview && job.reviewSaveError == nil
     }
 
     @discardableResult func trash(_ job: Assignment) async -> URL? {
@@ -584,6 +589,7 @@ struct DuplicatePhoto: Identifiable {
             } else { deferred.append(issue) }
         }
         job.record.issues = visible
+        if job.record.teacherReview != nil { job.record.teacherReview?.completedAt = nil }
         job.record.deferredReviewIssues = deferred
         job.record.rejectedIssues = result.rejectedCount
         job.record.reviewRejections = result.rejections
@@ -593,6 +599,7 @@ struct DuplicatePhoto: Identifiable {
             job.record.phaseDurations["review_\(stage)"] = result.modelEvidence?.stageSeconds[stage]
         }
         job.record.phase = .complete; job.record.failedPhase = nil
+        if selectedID == job.id { selectedIssueID = job.record.pendingIssues.first?.id }
     }
 
     func reanchorReview(_ job: Assignment) {
@@ -622,9 +629,10 @@ struct DuplicatePhoto: Identifiable {
     }
 
     func retry(_ job: Assignment, entireOCR: Bool = false) {
-        guard activeID != job.id, !job.record.phase.isRunning, !restarting.contains(job.id),
+        guard !job.savingReview, job.reviewSaveError == nil, activeID != job.id, !job.record.phase.isRunning, !restarting.contains(job.id),
               !deleting.contains(job.id), assignments.contains(where: { $0.id == job.id }) else { return }
         if entireOCR {
+            job.record.teacherReview?.completedAt = nil
             restarting.insert(job.id)
             let old = job.record
             Task {
@@ -661,21 +669,34 @@ struct DuplicatePhoto: Identifiable {
     func cancel() { task?.cancel() }
 
     func confirmTranscript(_ job: Assignment, text: String) {
-        guard activeID != job.id, !deleting.contains(job.id), assignments.contains(where: { $0.id == job.id }),
-              !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
-        job.record.transcript = LineAlignment.makeTranscript(text: text, hints: job.page?.hints ?? [])
-        job.record.humanConfirmed = true; job.record.issues = []
-        job.record.rejectedIssues = 0; job.record.reviewRejections = nil; job.record.deferredReviewIssues = nil
-        job.record.phase = .queued; job.record.error = nil
-        selectedIssueID = nil; pending[job.id] = .reviewing
-        pump()
+        guard activeID != job.id, !job.savingReview, job.reviewSaveError == nil, !deleting.contains(job.id),
+              assignments.contains(where: { $0.id == job.id }), !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+        let previous = job.record
+        job.savingReview = true
+        Task {
+            do {
+                try await repository.archiveBeforeStructureChange(previous)
+                job.record.transcript = LineAlignment.makeTranscript(text: text, hints: job.page?.hints ?? [])
+                job.record.teacherReview?.completedAt = nil
+                job.record.humanConfirmed = true; job.record.issues = []
+                job.record.rejectedIssues = 0; job.record.reviewRejections = nil; job.record.deferredReviewIssues = nil
+                job.record.phase = .queued; job.record.error = nil
+                selectedIssueID = nil; pending[job.id] = .reviewing
+                job.savingReview = false
+                pump()
+            } catch {
+                job.savingReview = false
+                globalError = "无法保存校对前的版本，原识别稿未改动：\(error.localizedDescription)"
+            }
+        }
     }
 
+    /// Preserve the older entry point while recording teacher judgments separately.
     func toggleDismiss(_ job: Assignment, issueID: UUID) {
-        guard !deleting.contains(job.id), assignments.contains(where: { $0.id == job.id }),
-              let index = job.record.issues.firstIndex(where: { $0.id == issueID }) else { return }
-        job.record.issues[index].dismissed.toggle()
-        Task { do { try await repository.save(job.record) } catch { globalError = "批注状态未保存：\(error.localizedDescription)" } }
+        guard let issue = job.record.issues.first(where: { $0.id == issueID }) else { return }
+        if let decision = job.record.review.decision(for: issue) {
+            restoreSuggestion(decision, job: job, undoManager: nil)
+        } else { resolve(job, issue: issue, as: .keepOriginal) }
     }
 
     func checkModels() async { await models.checkReadiness() }
@@ -688,12 +709,12 @@ struct DuplicatePhoto: Identifiable {
         guard let transcript = job.record.transcript else { return }
         let panel = NSSavePanel()
         panel.allowedContentTypes = [UTType(filenameExtension: "md") ?? .plainText]
-        panel.nameFieldStringValue = "\(job.record.title)\(annotated ? "-批注" : "-原文").md"
+        panel.nameFieldStringValue = "\(job.record.title)-识别结果\(annotated ? "（含批注）" : "").md"
         panel.begin { response in
             guard response == .OK, let url = panel.url else { return }
             do {
-                let content = annotated ? MarkdownExport.annotated(transcript, issues: job.record.activeIssues,
-                    humanConfirmed: job.record.humanConfirmed) : MarkdownExport.original(transcript)
+                let content = annotated ? MarkdownExport.annotated(transcript, issues: job.record.issues,
+                    humanConfirmed: job.record.humanConfirmed, teacherReview: job.record.review) : MarkdownExport.original(transcript)
                 try content.write(to: url, atomically: true, encoding: .utf8)
             } catch { self.globalError = "导出失败：\(error.localizedDescription)" }
         }

@@ -116,6 +116,16 @@ actor AssignmentRepository {
         let encoder = JSONEncoder(); encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         try encoder.encode(record).write(to: directory.appendingPathComponent("record.json"), options: .atomic)
     }
+    func readingState(id: UUID) throws -> ReadingState? {
+        let url = folder(id).appendingPathComponent("reading-state.json")
+        guard FileManager.default.fileExists(atPath: url.path) else { return nil }
+        return try JSONDecoder().decode(ReadingState.self, from: Data(contentsOf: url))
+    }
+    func saveReadingState(_ state: ReadingState, id: UUID) throws {
+        try requirePresent(id)
+        guard FileManager.default.fileExists(atPath: folder(id).appendingPathComponent("record.json").path) else { throw AssignmentFileError.removed }
+        try JSONEncoder().encode(state).write(to: folder(id).appendingPathComponent("reading-state.json"), options: .atomic)
+    }
     func savePage(_ page: PreparedPage, id: UUID) throws {
         try requirePresent(id)
         let directory = folder(id)
