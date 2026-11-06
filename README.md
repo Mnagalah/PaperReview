@@ -1,32 +1,10 @@
 # PaperReview · 作文批阅
 
-**基于 [OpenBMB](https://github.com/OpenBMB) MiniCPM 模型的本地 macOS 英语作文批阅助手。**
+本地运行的 macOS 英语作文批阅工具。
 
 导入一张手写作文照片，在原稿与识别稿之间对照阅读，定位拼写、语法、标点和大小写问题，再由老师逐条确认批注。照片、识别结果和批注分别保存，批阅建议不改写学生原文。
 
-[下载最新正式版](https://github.com/Mnagalah/PaperReview/releases/latest) · [开始使用](#下载安装) · [OpenBMB 模型分工](#openbmb-如何支撑批阅) · [开发说明](docs/COLLABORATION.md)
-
-## OpenBMB 如何支撑批阅
-
-PaperReview 的三个核心模型均来自 **OpenBMB**，分别承担转写、图文复核和基础审核，让从照片到批注的模型推理都能在 Apple Silicon Mac 上完成。
-
-**照片 → MiniCPM-OCR 转写 → Jev 图文复核 → MiniCPM5-2B 审核 → 教师确认**
-
-### MiniCPM-OCR 1.0：把手写照片转为文字
-
-[MiniCPM-OCR](https://github.com/OpenBMB/MiniCPM-OCR) 是文字识别的主体。应用先进行整页转写，立即展示识别结果，再对全部检测到的词区独立识别，结合原色与扫描增强图核对差异。当前使用官方 [F16 权重](https://modelscope.cn/models/OpenBMB/MiniCPM-OCR-1.0-gguf)。
-
-### MiniCPM-OCR Jev：检查识别结果与照片是否一致
-
-[Jev](https://github.com/OpenBMB/MiniCPM-OCR/blob/main/docs/minicpm_ocr_jev_en.md) 对原图、候选文字及其渲染图进行一致性评估。应用将这一信号与逐词识别证据结合，用于比较候选、决定是否重新识别，以及提示仍有疑义的位置。当前使用官方 [Q4_K_M 权重](https://modelscope.cn/models/OpenBMB/MiniCPM-OCR-Jev-gguf)。
-
-Jev 检查的是“读得是否与图一致”；作文中的语言问题交给下一阶段审核。
-
-### MiniCPM5-2B：结合上下文提出批阅建议
-
-[MiniCPM5-2B](https://huggingface.co/openbmb/MiniCPM5-2B) 读取识别文字，结合上下文检查拼写、语法、标点和大小写。应用将审核候选与原文做差分、校验定位，再显示为可逐条确认或放弃的批注。当前使用官方 [Q4_K_M 权重](https://modelscope.cn/models/OpenBMB/MiniCPM5-2B-GGUF)。
-
-**OpenBMB 提供核心模型能力，PaperReview 将这些能力接入老师的批阅流程。** 图像预处理、词区对齐、原稿定位、批注管理和原生界面由应用完成；三个模型通过 [llama.cpp](https://github.com/ggml-org/llama.cpp) 在本机运行。
+[下载最新正式版](https://github.com/Mnagalah/PaperReview/releases/latest) · [开始使用](#下载安装) · [开发说明](docs/COLLABORATION.md)
 
 ## 为对照批阅设计
 
@@ -64,6 +42,16 @@ Jev 检查的是“读得是否与图一致”；作文中的语言问题交给�
 
 列表右键或删除键可将作业副本移到废纸篓，来源照片保留；处理中的作业暂不可删除。
 
+## 本地模型
+
+应用使用 [OpenBMB](https://github.com/OpenBMB) 发布的 MiniCPM 系列模型，通过 [llama.cpp](https://github.com/ggml-org/llama.cpp) 在本机运行：
+
+- [MiniCPM-OCR 1.0 · F16](https://modelscope.cn/models/OpenBMB/MiniCPM-OCR-1.0-gguf)：整页转写与逐词识别，结合原色和扫描增强图核对文字。
+- [MiniCPM-OCR Jev · Q4_K_M](https://modelscope.cn/models/OpenBMB/MiniCPM-OCR-Jev-gguf)：评估候选文字与原图的一致性，为候选选择和重新识别提供依据。
+- [MiniCPM5-2B · Q4_K_M](https://modelscope.cn/models/OpenBMB/MiniCPM5-2B-GGUF)：结合上下文检查语言问题，应用再将建议定位到原文，由老师确认。
+
+模型及运行时的来源与许可见[第三方来源](docs/THIRD_PARTY.md)。
+
 ## 数据存储
 
 - 作业：`~/Library/Application Support/PaperReview/Assignments/`
@@ -95,9 +83,5 @@ python3 Tests/ModelScriptsTests/download_pause_tests.py
 - `accept → except`、`since → for` 的定向测试与正确用法控制已通过，其他语义错误仍可能漏报或误报，见[测试结果](docs/verification/lexical-review-20261104.md)。
 - 暂不支持跨照片合并、任意弯曲书页展平和涂改笔迹解释。
 - 发行包未在最低目标 macOS 或另一台 Mac 上验证。
-
-## 开源致谢
-
-感谢 **[OpenBMB](https://github.com/OpenBMB)** 开源 MiniCPM-OCR、MiniCPM-OCR Jev 与 MiniCPM5-2B，为本项目提供文字识别、识别质量评估和语言审核所依赖的模型能力；感谢 **[llama.cpp](https://github.com/ggml-org/llama.cpp)** 提供本地推理运行时。模型、运行时及其他资源的来源与许可见[第三方来源](docs/THIRD_PARTY.md)。
 
 [产品范围](PRODUCT.md) · [设计规范](DESIGN.md) · [实现记录](docs/implementation-status.md) · [0.1.4 发布说明](docs/releases/0.1.4.md)
