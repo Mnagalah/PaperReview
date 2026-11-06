@@ -8,7 +8,7 @@
 
 - 日常使用：`dist/PaperReview.app` → `~/Library/Developer/PaperReview/Build/PaperReview.app`，保留现有快捷方式入口。
 - 正式发行：`dist/PaperReview-Release.app` → `~/Library/Developer/PaperReview/Release/PaperReview.app`；ZIP 在 `dist/release/`。
-- 隔离预览按需通过 `--ui-preview` 重建，使用独立数据目录，不作为发行包。正式整理时不保留旧预览包。
+- 隔离预览按需通过 `--ui-preview` 重建，使用独立数据目录，不作为发行包。本次清理保留当前预览包、原有入口和历史验证证据，仅移除其 `Previous/` 旧构建。
 - API 在线版暂停；当前产品只交付本地模型版本，不新增在线模块。
 - Git 作者、提交者和标签署名统一使用 `Mnagalah <296751126+Mnagalah@users.noreply.github.com>`；本仓库配置固定该身份，禁止使用真实姓名。
 - 后续构建仍先保存 `Previous/` 作为更新回退；正式版本验证及远端同步成功后可清理旧包，不删除作业、模型或验证资料。
