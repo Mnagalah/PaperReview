@@ -18,8 +18,8 @@ public enum MarkdownExport {
     }
 
     /// Corrections remain appended suggestions; the original section is never edited.
-    public static func annotated(_ transcript: Transcript, issues: [ReviewIssue], humanConfirmed: Bool, teacherReview: TeacherReview? = nil) -> String {
-        if let teacherReview { return teacherAnnotated(transcript, issues: issues, review: teacherReview) }
+    public static func annotated(_ transcript: Transcript, issues: [ReviewIssue], humanConfirmed: Bool, teacherReview: TeacherReview? = nil, uncertainIssueIDs: Set<UUID> = []) -> String {
+        if let teacherReview { return teacherAnnotated(transcript, issues: issues, review: teacherReview, uncertainIssueIDs: uncertainIssueIDs) }
         var output = original(transcript)
         output += "\n\n---\n\n## 基础审核批注\n\n"
         output += humanConfirmed ? "原文已由老师核对。\n\n" : "以下为模型建议，请老师确认。\n\n"
@@ -27,11 +27,12 @@ public enum MarkdownExport {
         if valid.isEmpty { output += "未记录基础错误建议。\n" }
         for (index, issue) in valid.enumerated() {
             output += "\(index + 1). **\(issue.kind.title)** · L\(issue.lineID)：\(code(issue.quote))\n"
+            if uncertainIssueIDs.contains(issue.id) { output += "   可能识别有误，请结合原稿核对。\n" }
             output += "   建议：\(code(issue.suggestion))。\(issue.explanation.replacingOccurrences(of: "\n", with: " "))\n\n"
         }
         return output
     }
-    private static func teacherAnnotated(_ transcript: Transcript, issues: [ReviewIssue], review: TeacherReview) -> String {
+    private static func teacherAnnotated(_ transcript: Transcript, issues: [ReviewIssue], review: TeacherReview, uncertainIssueIDs: Set<UUID>) -> String {
         var output = original(transcript) + "\n\n---\n\n## 批注\n\n"
         let annotations = review.confirmed
         if annotations.isEmpty { output += "暂无批注。\n" }
@@ -43,7 +44,10 @@ public enum MarkdownExport {
         let pending = review.pending(issues)
         if !pending.isEmpty {
             output += "\n## 待确认批注\n\n"
-            for issue in pending { output += "- \(code(issue.quote)) → \(code(issue.suggestion))：\(issue.explanation)\n" }
+            for issue in pending {
+                let warning = uncertainIssueIDs.contains(issue.id) ? "（可能识别有误）" : ""
+                output += "- \(code(issue.quote)) → \(code(issue.suggestion))\(warning)：\(issue.explanation)\n"
+            }
         }
         let kept = review.discarded
         if !kept.isEmpty {

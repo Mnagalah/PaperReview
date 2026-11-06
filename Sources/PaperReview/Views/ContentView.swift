@@ -71,7 +71,7 @@ struct ContentView: View {
         WorkspaceToolbarState(filename: store.selected?.record.displayFilename ?? "作文批阅",
             selectedID: store.selectedID, completionTitle: completionTitle, canComplete: canComplete,
             canExport: store.selected?.record.transcript != nil,
-            canEdit: store.selected.map { $0.record.transcript != nil && store.activeID != $0.id && !$0.savingReview } ?? false,
+            canEdit: store.selected.map { $0.record.transcript != nil && store.activeID != $0.id && !$0.record.phase.isPendingOrRunning && !$0.savingReview } ?? false,
             canWipe: store.selected?.record.transcript?.isAligned == true,
             reviewIsSaving: store.selected?.savingReview == true,
             presentation: store.selected?.reading.presentation ?? "sideBySide",
@@ -80,7 +80,7 @@ struct ContentView: View {
             export: { annotated in if let job = store.selected { store.export(job, annotated: annotated) } },
             complete: completeReview, edit: { editing = true },
             selectPresentation: { value in if let job = store.selected { job.reading.presentation = value; store.saveReading(job) } },
-            canReview: store.selected.map { $0.record.transcript != nil && !$0.record.phase.isRunning
+            canReview: store.selected.map { $0.record.transcript != nil && !$0.record.phase.isPendingOrRunning
                 && store.activeID != $0.id && !$0.savingReview && $0.reviewSaveError == nil } ?? false,
             review: { if let job = store.selected { store.retry(job) } })
     }

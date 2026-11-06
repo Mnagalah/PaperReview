@@ -4,27 +4,27 @@ import PaperReviewCore
 extension WorkspaceStore {
     func resolve(_ job: Assignment, issue: ReviewIssue, as resolution: TeacherResolution,
                  suggestion: String? = nil, explanation: String? = nil, undoManager: UndoManager? = nil) {
-        guard !job.savingReview, job.reviewSaveError == nil, activeID != job.id, !job.record.phase.isRunning, job.record.transcript?.revision == issue.revision,
-              job.record.issues.contains(where: { $0.id == issue.id }), assignments.contains(where: { $0.id == job.id }) else { return }
+        guard !job.savingReview, job.reviewSaveError == nil, activeID != job.id, !job.record.phase.isPendingOrRunning, job.record.transcript?.revision == issue.revision,
+              job.record.reviewIssues.contains(where: { $0.id == issue.id }), assignments.contains(where: { $0.id == job.id }) else { return }
         var review = job.record.review
         review.record(TeacherDecision(issue: issue, resolution: resolution, suggestion: suggestion, explanation: explanation))
-        let next = review.pending(job.record.issues).first { $0.start >= issue.start }
-            ?? review.pending(job.record.issues).first
+        let next = review.pending(job.record.reviewIssues).first { $0.start >= issue.start }
+            ?? review.pending(job.record.reviewIssues).first
         setReview(review, for: job, selected: next?.id, undoManager: undoManager,
             action: resolution == .annotation ? "确认批注" : "放弃建议")
     }
 
     func restoreSuggestion(_ decision: TeacherDecision, job: Assignment, undoManager: UndoManager?) {
-        guard !job.savingReview, activeID != job.id,
+        guard !job.savingReview, activeID != job.id, !job.record.phase.isPendingOrRunning,
               let transcript = job.record.transcript, decision.isAnchored(in: transcript),
-              let target = job.record.issues.first(where: { decision.matches($0) }) else { return }
+              let target = job.record.reviewIssues.first(where: { decision.matches($0) }) else { return }
         var value = job.record.review
         value.restore(decision.issue)
         setReview(value, for: job, selected: target.id, undoManager: undoManager, action: "恢复建议")
     }
 
     func saveComment(_ comment: String, job: Assignment, undoManager: UndoManager?) {
-        guard !job.savingReview, activeID != job.id, comment != job.record.review.comment else { return }
+        guard !job.savingReview, activeID != job.id, !job.record.phase.isPendingOrRunning, comment != job.record.review.comment else { return }
         var value = job.record.review; value.comment = comment; value.completedAt = nil
         setReview(value, for: job, selected: selectedIssueID, undoManager: undoManager, action: "修改评语")
     }
@@ -34,7 +34,7 @@ extension WorkspaceStore {
               keepRemaining || job.record.pendingIssues.isEmpty else { return }
         var value = job.record.review
         if keepRemaining {
-            for issue in value.pending(job.record.issues) { value.record(TeacherDecision(issue: issue, resolution: .keepOriginal)) }
+            for issue in value.pending(job.record.reviewIssues) { value.record(TeacherDecision(issue: issue, resolution: .keepOriginal)) }
         }
         value.completedAt = Date()
         setReview(value, for: job, selected: selectedIssueID, undoManager: undoManager, action: "完成批阅")

@@ -196,7 +196,7 @@ func inspectWorkspaceTrashRecovery() async throws {
     #expect(job.record.candidates.first?.score == 0.23 && job.record.candidates.first?.readability == evidence)
     #expect(job.record.deferredReviewIssues?.first?.id == issue.id)
     // Newly located text was unlocated before. Geometry recovery does not turn
-    // it into an independently verified spelling or release deferred advice.
+    // it into independently verified spelling or erase its recognition warning.
     let recovered = try #require(job.wordRegions.first { $0.original == "freind" })
     #expect(job.uncertainWordRects.contains(recovered.rect))
     let history = directory.appendingPathComponent(record.id.uuidString).appendingPathComponent("structure-history")

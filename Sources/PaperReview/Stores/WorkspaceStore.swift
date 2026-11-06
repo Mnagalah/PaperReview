@@ -604,7 +604,7 @@ struct DuplicatePhoto: Identifiable {
 
     func reanchorReview(_ job: Assignment) {
         guard task == nil, !deleting.contains(job.id), assignments.contains(where: { $0.id == job.id }),
-              !job.record.phase.isRunning, let transcript = job.record.transcript,
+              !job.record.phase.isPendingOrRunning, let transcript = job.record.transcript,
               let rejections = job.record.reviewRejections else { return }
         let result = IssueAnchoring.anchor(rejections.map(\.proposal), to: transcript, recoverUniqueOccurrence: true, recoverUniqueLine: true)
         let inventory = WordAlignment.inventory(transcript, hints: job.page?.words ?? [])
@@ -629,7 +629,7 @@ struct DuplicatePhoto: Identifiable {
     }
 
     func retry(_ job: Assignment, entireOCR: Bool = false) {
-        guard !job.savingReview, job.reviewSaveError == nil, activeID != job.id, !job.record.phase.isRunning, !restarting.contains(job.id),
+        guard !job.savingReview, job.reviewSaveError == nil, activeID != job.id, !job.record.phase.isPendingOrRunning, !restarting.contains(job.id),
               !deleting.contains(job.id), assignments.contains(where: { $0.id == job.id }) else { return }
         if entireOCR {
             job.record.teacherReview?.completedAt = nil
@@ -693,7 +693,7 @@ struct DuplicatePhoto: Identifiable {
 
     /// Preserve the older entry point while recording teacher judgments separately.
     func toggleDismiss(_ job: Assignment, issueID: UUID) {
-        guard let issue = job.record.issues.first(where: { $0.id == issueID }) else { return }
+        guard let issue = job.record.reviewIssues.first(where: { $0.id == issueID }) else { return }
         if let decision = job.record.review.decision(for: issue) {
             restoreSuggestion(decision, job: job, undoManager: nil)
         } else { resolve(job, issue: issue, as: .keepOriginal) }
@@ -713,8 +713,9 @@ struct DuplicatePhoto: Identifiable {
         panel.begin { response in
             guard response == .OK, let url = panel.url else { return }
             do {
-                let content = annotated ? MarkdownExport.annotated(transcript, issues: job.record.issues,
-                    humanConfirmed: job.record.humanConfirmed, teacherReview: job.record.review) : MarkdownExport.original(transcript)
+                let content = annotated ? MarkdownExport.annotated(transcript, issues: job.record.reviewIssues,
+                    humanConfirmed: job.record.humanConfirmed, teacherReview: job.record.review,
+                    uncertainIssueIDs: job.record.recognitionWarningIDs) : MarkdownExport.original(transcript)
                 try content.write(to: url, atomically: true, encoding: .utf8)
             } catch { self.globalError = "导出失败：\(error.localizedDescription)" }
         }

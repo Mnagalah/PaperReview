@@ -1,87 +1,54 @@
-# PaperReview · 作文批阅
+# PaperReview
 
-本地运行的 macOS 英语作文批阅工具。
+PaperReview 是面向教师的 macOS 英语作文批阅应用，用于手写作文的文字识别、原稿核对和基础语言审核。应用将批注建议关联到原文位置，由教师确认处理结果，并保存作业与批阅记录。
 
-导入一张手写作文照片，在原稿与识别稿之间对照阅读，定位拼写、语法、标点和大小写问题，再由老师逐条确认批注。照片、识别结果和批注分别保存，批阅建议不改写学生原文。
+[下载发行版](https://github.com/Mnagalah/PaperReview/releases/latest) · [使用说明](docs/RELEASE_USAGE.txt) · [开发文档](docs/COLLABORATION.md)
 
-[下载最新正式版](https://github.com/Mnagalah/PaperReview/releases/latest) · [开始使用](#下载安装) · [开发说明](docs/COLLABORATION.md)
+## 核心功能
 
-## 为对照批阅设计
+- **作业识别**：导入 JPEG、PNG、HEIC、TIFF 格式的作文照片，支持单页及同一照片内的左右双页识别，保留原始照片与转写结果。
+- **原稿核对**：对照照片与识别文本，按原文位置查看问题，支持人工校对和重新审核。
+- **语言审核**：检查拼写、语法、标点和大小写等基础语言问题，生成附带原文引用与位置的批注建议。
+- **批阅管理**：逐条确认或放弃建议，支持恢复、撤销和重做，保存教师的处理记录与批阅完成状态。
+- **结果导出**：以 Markdown 格式导出识别文本，或包含批注及其处理状态的文档。
 
-- **原稿、识别稿、建议一起看。** 原生三栏工作区支持左右、上下、滑动对照，以及普通阅读和单独原稿。窄窗将作业列表收为选择入口，批阅建议始终保留。
-- **批注能回到原词。** 点击建议即可定位照片与识别稿中的问题；支持确认、放弃、恢复、撤销和重做，老师保留最终判断。
-- **每个阶段都有结果。** 转写完成即显示文字，逐词识别、Jev 复核和基础审核继续运行。阶段条、分析状态和缩放保持同排，分析完成后阶段条仍可查看。
-- **作业留在本机。** 模型下载完成后，识别与审核无需云端 API。照片和文字仅在本机处理。
-- **融入 macOS。** SwiftUI 与 AppKit 原生界面，支持深色、浅色和跟随系统；新版 macOS 使用系统玻璃材质与分层应用图标。
+## 技术实现
 
-## 下载安装
+### 应用架构
 
-需要 **Apple Silicon Mac**，最低目标 **macOS 14**，建议 **24 GB 内存**。使用发行包无需安装 Xcode 或单独配置 Python。
+项目采用 Swift 6.2、SwiftUI 和 AppKit，通过 Swift Package Manager 组织与构建。最低部署目标为 macOS 14，当前发行版本面向 Apple Silicon Mac。
 
-1. 从 [Releases](https://github.com/Mnagalah/PaperReview/releases/latest) 下载 `PaperReview-0.1.4-macOS-arm64.zip`，解压后将 `PaperReview.app` 拖到“应用程序”。私有仓库需要登录有权限的 GitHub 账号。
-2. 打开 **设置 → 本地服务 → 下载全部模型**，确认后开始下载。
-3. 下载完成后点击 **启动全部**，待左下角显示“本机服务已就绪”即可导入作业。
+| 模块 | 职责 |
+| --- | --- |
+| `PaperReview` | 应用界面、图像处理、作业流程与数据存储 |
+| `PaperReviewCore` | 文本结构、原文定位、批注状态、质量判断与模型接口 |
+| `PaperReviewLocalModels` | 本地模型配置、下载、服务启停与推理调用 |
 
-首次下载约 **5.94 GB**：权重及投影文件约 5.924 GB，[llama.cpp b11960 官方运行时](https://github.com/ggml-org/llama.cpp/releases/tag/b11960)约 16.5 MB。模型不包含在应用 ZIP 中。
+应用通过 `ModelModule` 和 `ModelSession` 调用模型能力，作业流程与具体推理实现分离。
 
-当前使用开发签名，尚未公证。若首次打开被 macOS 阻止，请确认下载来源后，在“系统设置 → 隐私与安全性”自行批准打开。
+### 图像处理与模型推理
 
-### 管理本地模型
+图像处理使用 Apple Vision 和 Core Image，完成纸面检测、文字区域定位、透视校正与扫描增强。识别文本通过行、词坐标与原图建立对应关系。
 
-下载区显示进度、速度、剩余量和预计时间，支持**暂停下载、继续下载、重试续传**，并跳过已完整下载的文件。退出应用会保留下载进度，重新打开后点击**继续下载**。
+模型通过 llama.cpp 在本机运行：
 
-**删除全部模型…**经确认后，将当前模型及未完成下载移到废纸篓，保留运行时、作业和无关文件；正在使用的文件不可删除。关闭窗口后模型服务继续运行，需要时可在**设置 → 本地服务**停止。
+| 模型 | 规格 | 用途 |
+| --- | --- | --- |
+| MiniCPM-OCR 1.0 | F16 | 整页转写与词区域识别 |
+| MiniCPM-OCR Jev | Q4_K_M | 评估候选文字与图像的一致性，辅助识别复核 |
+| MiniCPM5-2B | Q4_K_M | 结合上下文生成基础语言审核建议 |
 
-## 批阅一份作业
+处理流程依次完成图像预处理、整页转写、逐词核验、图文复核和语言审核。应用根据核验结果选择识别候选，并在结果不稳定时自动重试，总计最多三轮。
 
-1. **导入照片。** 点击左侧导入按钮（⌘O），或拖入 JPEG、PNG、HEIC、TIFF；重复文件会提醒。支持单张照片内的单页或左右双页，双页按左页、右页顺序识别。
-2. **查看识别结果。** 转写后自动继续逐词识别、Jev 复核和基础审核；识别不稳定时自动重新识别，总计最多三轮。连续边栏行号、模板标签与学生正文分开保存。
-3. **对照原稿。** 从顶部工具栏切换对照方式。底部可调整缩放，窄窗点击百分比打开缩放控件；点击 Jev 查看复核详情。可读性提示位于原稿显示选项下方，疑义标记默认关闭，需要时再开启。
-4. **确认批注。** 在右侧选择**确认**或**放弃**；**已确认项**只统计确认的批注，垃圾桶图标可查看并恢复已放弃的问题。未采用的模型建议可从分段控件下方查看。
-5. **完成并导出。** 右上角依次为**重新审核、完成批阅、分享**。完成批阅保存教师确认状态；分享可导出**识别结果**或**识别结果（含批注）** Markdown。机器分析完成与教师完成批阅分别记录。
+语言审核先生成内部纠错草稿，再与原始转写比较差异，将建议映射到对应文本范围。识别文本、模型建议和教师决定分别记录。审核建议以批注形式保存，原始转写独立保留。
 
-列表右键或删除键可将作业副本移到废纸篓，来源照片保留；处理中的作业暂不可删除。
+### 本地运行与数据保存
 
-## 本地模型
+模型与运行时下载完成后，识别和语言审核均在本机执行。模型服务仅监听回环地址，应用通过本机 HTTP 接口调用。模型管理支持下载暂停、续传及服务启停。
 
-应用使用 [OpenBMB](https://github.com/OpenBMB) 发布的 MiniCPM 系列模型，通过 [llama.cpp](https://github.com/ggml-org/llama.cpp) 在本机运行：
+作业以原始图片、处理后的图片和 JSON 记录保存，包含识别结果、文字坐标、审核历史及教师处理状态。默认存储位置为：
 
-- [MiniCPM-OCR 1.0 · F16](https://modelscope.cn/models/OpenBMB/MiniCPM-OCR-1.0-gguf)：整页转写与逐词识别，结合原色和扫描增强图核对文字。
-- [MiniCPM-OCR Jev · Q4_K_M](https://modelscope.cn/models/OpenBMB/MiniCPM-OCR-Jev-gguf)：评估候选文字与原图的一致性，为候选选择和重新识别提供依据。
-- [MiniCPM5-2B · Q4_K_M](https://modelscope.cn/models/OpenBMB/MiniCPM5-2B-GGUF)：结合上下文检查语言问题，应用再将建议定位到原文，由老师确认。
-
-模型及运行时的来源与许可见[第三方来源](docs/THIRD_PARTY.md)。
-
-## 数据存储
-
-- 作业：`~/Library/Application Support/PaperReview/Assignments/`
+- 作业数据：`~/Library/Application Support/PaperReview/Assignments/`
 - 发行版模型：`~/Library/Application Support/PaperReview/Models/`
-- 运行日志：模型目录下的 `run/`
-- 本机服务端口：`18499 / 18500 / 18501`，仅监听本机。
 
-## 开发
-
-需要 Xcode / Swift 6.2+。开发模型放在 `.local-models/`；`dist/PaperReview.app` 是本机开发构建入口。
-
-```sh
-./script/setup_models.sh
-./script/start_models.sh
-swift test
-bash Tests/ModelScriptsTests/startup_tests.sh
-python3 Tests/ModelScriptsTests/download_resume_tests.py
-python3 Tests/ModelScriptsTests/download_pause_tests.py
-./script/build_and_run.sh --build-only
-./script/package_release.sh
-```
-
-构建、独立测试目录和代码结构见[开发与协作](docs/COLLABORATION.md)。学生照片、作业记录、模型权重和本地验证资料不提交到 Git。
-
-## 当前范围与已知问题
-
-- 当前专注基础语言问题的批注，不做作文评分、扩写或润色。
-- 连笔、淡字和词框边界仍可能造成识别误差；Jev 也可能偏向常见拼写，对非标准拼写仍需结合原稿核对。
-- `accept → except`、`since → for` 的定向测试与正确用法控制已通过，其他语义错误仍可能漏报或误报，见[测试结果](docs/verification/lexical-review-20261104.md)。
-- 暂不支持跨照片合并、任意弯曲书页展平和涂改笔迹解释。
-- 发行包未在最低目标 macOS 或另一台 Mac 上验证。
-
-[产品范围](PRODUCT.md) · [设计规范](DESIGN.md) · [实现记录](docs/implementation-status.md) · [0.1.4 发布说明](docs/releases/0.1.4.md)
+模型来源与许可见[第三方说明](docs/THIRD_PARTY.md)，构建与测试方法见[开发文档](docs/COLLABORATION.md)。

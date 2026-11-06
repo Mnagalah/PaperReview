@@ -2,7 +2,7 @@
 
 仓库：[Mnagalah/PaperReview](https://github.com/Mnagalah/PaperReview)（Private）。
 
-## 当前正式版 · 0.1.4（5）· 2026-11-06
+## 已发布安装包 · 0.1.4（5）· 2026-11-06
 
 用户已确认同排进度与设置改进为最新正式基准，并授权替换日常版、同步 GitHub。基于 0.1.3 原生三栏、响应式布局和深浅色系统，纳入阶段条常驻、文字伸缩与状态翻页、底栏移除、未采用建议上移，以及服务／设置独立入口和固定设置标题。证据见[进度与设置记录](verification/progress-settings-20261106.md)和[0.1.4 正式版记录](verification/release-0.1.4-20261106.md)。
 
@@ -12,6 +12,10 @@
 - API 在线版暂停；当前产品只交付本地模型版本，不新增在线模块。
 - Git 作者、提交者和标签署名统一使用 `Mnagalah <296751126+Mnagalah@users.noreply.github.com>`；本仓库配置固定该身份，禁止使用真实姓名。
 - 后续构建仍先保存 `Previous/` 作为更新回退；正式版本验证及远端同步成功后可清理旧包，不删除作业、模型或验证资料。
+
+## 当前日常版 · 0.1.4（6）· 识别风险建议与排队反馈
+
+风险建议由 `AssignmentRecord.reviewIssues` 汇总，在问题列表直接显示并带识别风险标签；底层 `deferredReviewIssues` 继续保留证据分类，不迁移或清空旧记录。排队、运行、失败重试共用 `ReviewActivity`。用户已确认此版作为日常版，并授权同步 GitHub；本轮不改动已发布的 v0.1.4 安装包。README 使用用户审阅的附件版本，按原文替换。验收证据见[修正记录](verification/inline-review-feedback-20261106.md)。
 
 ## 环境
 

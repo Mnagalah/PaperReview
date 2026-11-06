@@ -1,9 +1,9 @@
 import Foundation
 
 public enum ReviewLiteralSupport {
-    /// An unresolved crop does not invalidate every letter in its word group.
-    /// Keep the OCR warning, but allow a linguistic annotation when two image
-    /// readings independently support the exact affected source word(s).
+    /// Literal support for displaying a suggestion without a recognition warning.
+    /// A false result classifies OCR risk; current UI still lists a valid text anchor.
+    /// Two independent image readings can support a word inside an unresolved group.
     public static func canAnnotate(_ issue: ReviewIssue, transcript: Transcript, inventory: WordInventory,
                                    uncertainRects: [PageRect], checks: [WordCheck], humanConfirmed: Bool = false) -> Bool {
         guard issue.revision == transcript.revision else { return false }

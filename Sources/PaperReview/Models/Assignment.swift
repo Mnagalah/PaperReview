@@ -29,18 +29,36 @@ nonisolated struct AssignmentRecord: Codable, Identifiable, Sendable {
     var structureVersion: String?
     var pageAnnotations: [PageAnnotation]?
     var teacherReview: TeacherReview?
-    var activeIssues: [ReviewIssue] { issues.filter { !$0.dismissed } }
+    /// Older records keep OCR-risk proposals separately. They are actionable
+    /// suggestions now, with a warning, without rewriting the stored evidence.
+    var reviewIssues: [ReviewIssue] {
+        guard let transcript else { return issues }
+        var result = issues
+        for issue in deferredReviewIssues ?? [] {
+            guard issue.revision == transcript.revision, issue.start >= 0, issue.length > 0,
+                  NSMaxRange(issue.range) <= transcript.text.utf16.count,
+                  (transcript.text as NSString).substring(with: issue.range) == issue.quote,
+                  !result.contains(where: { $0.id == issue.id || ($0.range == issue.range && $0.kind == issue.kind && $0.suggestion == issue.suggestion) }) else { continue }
+            result.append(issue)
+        }
+        return result.sorted { $0.start < $1.start }
+    }
+    func needsRecognitionCheck(_ issue: ReviewIssue) -> Bool {
+        !humanConfirmed && (deferredReviewIssues ?? []).contains { $0.id == issue.id }
+    }
+    var recognitionWarningIDs: Set<UUID> { Set(reviewIssues.filter(needsRecognitionCheck).map(\.id)) }
+    var activeIssues: [ReviewIssue] { reviewIssues.filter { !$0.dismissed } }
     var review: TeacherReview {
         if let teacherReview { return teacherReview }
         var value = TeacherReview()
-        value.decisions = issues.filter(\.dismissed).map { issue in
+        value.decisions = reviewIssues.filter(\.dismissed).map { issue in
             var decision = TeacherDecision(issue: issue, resolution: .keepOriginal)
             decision.id = issue.id
             return decision
         }
         return value
     }
-    var pendingIssues: [ReviewIssue] { review.pending(issues) }
+    var pendingIssues: [ReviewIssue] { review.pending(reviewIssues) }
     var reviewStatus: String {
         if review.completedAt != nil { return "已批阅" }
         if !review.decisions.isEmpty || !review.comment.isEmpty { return "批阅中" }

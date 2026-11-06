@@ -259,6 +259,7 @@ public enum PipelinePhase: String, Codable, Sendable {
         }
     }
     public var isRunning: Bool { [.preparing, .recognizing, .verifyingWords, .scoring, .reviewing].contains(self) }
+    public var isPendingOrRunning: Bool { self == .queued || isRunning }
 }
 
 public enum QualityGate {

@@ -487,14 +487,14 @@
           "分享"
         ],
         "reviewDiscarded": "Trailing trash icon beside the segmented control; anchored popover; disabled when empty.",
-        "reviewUnadopted": {
-          "nativeSource": "UnadoptedReviewView / IssueAnchoring.anchor",
-          "entry": "N 条模型建议未采用; rejectedIssues + deferredReviewIssues.count; popover anchored above this footer button",
-          "popoverWidth": 380,
-          "maximumListHeight": 320,
-          "historicalRecovery": "When stored proposals have recoverable exact literal matches, reanchor existing results without invoking a model. Keep legacy missing-reason explanation.",
+        "reviewUncertain": {
+          "nativeSource": "AssignmentRecord.reviewIssues / ReviewRejectedRows / IssueAnchoring.anchor",
+          "entry": "Current text-anchored OCR-risk proposals are inline actionable suggestions with a 可能识别有误 tag. Invalid proposals remain inline with their exact reason, without fabricated anchors or confirmation actions.",
+          "tag": "11pt semantic warning color capsule after the category; independent of the ambiguity-marker toggle",
+          "historicalRecovery": "Saved deferred proposals are readable without rerunning inference. Recover unique exact literal anchors from stored rejected proposals; retain missing-reason explanations for legacy records.",
           "modelBoundary": "MiniCPM5-2B authors suggestions and reasons; reanchor repairs indices, not semantics."
         },
+        "reviewActivity": "Queued and running share LiquidDotsLoader and ReviewActivity. Retain old results with a compact status in the fixed context row; center feedback when empty. Retry preserves results and immediately shows queue state; disable duplicate retry and review edits while queued or running.",
         "readabilityWarning": "One line above content; edit becomes 核对原文 for difficult homework. Uses independent word-image and page evidence; no handwriting grade.",
         "completionShortcut": "command-return; same validation and pending-issue confirmation as toolbar"
       },
