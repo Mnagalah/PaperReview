@@ -1,45 +1,51 @@
 import SwiftUI
 import PaperReviewCore
 
-/// Each responsive candidate owns its popover and anchors it to the button.
-/// Active processing stays expanded instead of requiring an extra click.
+/// The stage rail retains the same identity and trailing edge through completion.
 struct ProcessingStatusView: View {
     let store: WorkspaceStore
     let job: Assignment
     let mode: ComparisonMode
-    @State private var details = false
 
     var body: some View {
-        if job.record.phase.isRunning {
-            HStack(spacing: 10) {
-                stages(inline: true).frame(minWidth: 300, maxWidth: 440)
-                if store.activeID == job.id {
-                    Button { store.cancel() } label: { Image(systemName: "pause.fill") }
-                        .help("暂停处理").accessibilityLabel("暂停处理")
-                }
-            }
-        } else {
-            Button { details = true } label: {
-                HStack(spacing: 6) {
-                    Text(job.record.phase == .complete ? "分析完成" : job.record.phase.title)
-                    Image(systemName: "chevron.down").font(.caption2)
-                }.fixedSize()
-            }
-            .help("查看处理详情")
-            .popover(isPresented: $details, arrowEdge: .bottom) {
-                VStack(alignment: .leading, spacing: 14) {
-                    stages(inline: false)
-                    if job.record.phase == .complete {
-                        Button("重新识别这张照片") { details = false; store.retry(job, entireOCR: true) }
-                    }
-                }.padding(16).frame(width: 480)
-            }
-        }
+        HStack(spacing: 6) {
+            StageStrip(record: job.record, comparisonMode: .constant(mode), threshold: store.models.policy.threshold,
+                canRetryOCR: store.activeID != job.id && !job.record.phase.isRunning && !job.savingReview && job.reviewSaveError == nil,
+                onRetryOCR: { store.retry(job, entireOCR: true) }, showsLayoutPicker: false, inline: true)
+            Button { store.cancel() } label: { Image(systemName: "pause.fill").frame(width: 18, height: 28) }
+                .help("暂停处理").accessibilityLabel("暂停处理")
+                .disabled(store.activeID != job.id)
+                .opacity(job.record.phase.isRunning ? 1 : 0)
+                .accessibilityHidden(!job.record.phase.isRunning)
+        }.frame(height: 32)
     }
+}
 
-    private func stages(inline: Bool) -> some View {
-        StageStrip(record: job.record, comparisonMode: .constant(mode), threshold: store.models.policy.threshold,
-            canRetryOCR: store.activeID != job.id && !job.record.phase.isRunning,
-            onRetryOCR: { store.retry(job, entireOCR: true) }, showsLayoutPicker: false, inline: inline)
+/// A clipped, fixed-width two-page label: completion never changes its footprint.
+struct AnalysisStatusLabel: View {
+    let phase: PipelinePhase
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    private let pageHeight: CGFloat = 18
+    static func title(for phase: PipelinePhase) -> String {
+        phase.isRunning ? "分析中" : phase == .complete ? "分析完成" : phase.title
+    }
+    var body: some View {
+        Group {
+            if phase.isRunning || phase == .complete {
+                if reduceMotion {
+                    Text(Self.title(for: phase))
+                } else {
+                    VStack(alignment: .trailing, spacing: 0) {
+                        Text("分析中").frame(height: pageHeight)
+                        Text("分析完成").frame(height: pageHeight)
+                    }
+                    .offset(y: phase == .complete ? -pageHeight : 0)
+                    .frame(height: pageHeight, alignment: .top)
+                    .clipped()
+                    .animation(WorkspaceMotion.progressTransition, value: phase == .complete)
+                }
+            } else { Text(Self.title(for: phase)) }
+        }.frame(width: 60, height: pageHeight, alignment: .trailing)
+            .accessibilityElement(children: .ignore).accessibilityLabel(Self.title(for: phase))
     }
 }

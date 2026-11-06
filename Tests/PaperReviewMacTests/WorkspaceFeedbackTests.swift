@@ -30,6 +30,8 @@ import PaperReviewCore
     record.transcript = LineAlignment.fallback("I feeled happy. The wether is suny.")
     record.width = 1000; record.height = 750
     record.phase = .verifyingWords; record.wordChecksCompleted = 24; record.wordChecksTotal = 50
+    record.rejectedIssues = 1
+    record.humanConfirmed = true; record.attempt = 1
     record.issues = IssueAnchoring.anchor([
         .init(line: 1, quote: "feeled", occurrence: 1, kind: .spelling, suggestion: "felt", explanation: "过去式。"),
         .init(line: 1, quote: "suny", occurrence: 1, kind: .spelling, suggestion: "sunny", explanation: "缺少 n。")
@@ -95,6 +97,41 @@ import PaperReviewCore
         try #require(bitmap.representation(using: .png, properties: [:]))
             .write(to: output.appendingPathComponent("dots-\(Int(separation)).png"))
     }
+    // Capture the same live view tree through word-count growth and completion.
+    let railHost = NSHostingView(rootView: FeedbackRail(store: store, job: job))
+    let railWindow = NSWindow(contentRect: NSRect(x: 80, y: 80, width: 440, height: 100),
+        styleMask: [.borderless], backing: .buffered, defer: false)
+    railWindow.isReleasedWhenClosed = false
+    railWindow.appearance = NSAppearance(named: .aqua); NSApp.appearance = railWindow.appearance
+    railWindow.contentView = railHost; railWindow.orderFront(nil)
+    job.record.phase = .verifyingWords
+    job.record.wordChecksCompleted = 9; job.record.wordChecksTotal = 100
+    try await Task.sleep(for: .milliseconds(350))
+    func captureRail(_ name: String) throws -> Data {
+        railHost.layoutSubtreeIfNeeded(); railWindow.displayIfNeeded()
+        #expect(railHost.fittingSize.width <= 440)
+        let bitmap = try #require(railHost.bitmapImageRepForCachingDisplay(in: railHost.bounds))
+        railHost.cacheDisplay(in: railHost.bounds, to: bitmap)
+        let png = try #require(bitmap.representation(using: .png, properties: [:]))
+        try png.write(to: output.appendingPathComponent("rail-\(name).png"))
+        return png
+    }
+    _ = try captureRail("count-9")
+    job.record.wordChecksCompleted = 100
+    try await Task.sleep(for: .milliseconds(60))
+    _ = try captureRail("count-growing")
+    try await Task.sleep(for: .milliseconds(240))
+    _ = try captureRail("count-100")
+    job.record.phase = .complete
+    try await Task.sleep(for: .milliseconds(60))
+    let transition = try captureRail("completing")
+    try await Task.sleep(for: .milliseconds(240))
+    let completed = try captureRail("complete")
+    #expect(transition != completed, "Completion should animate within the same persistent rail")
+    job.record.phase = .reviewing
+    try await Task.sleep(for: .milliseconds(350))
+    _ = try captureRail("restarted")
+    railWindow.close()
     await store.finishReadingWrites()
 }
 
@@ -105,4 +142,44 @@ import PaperReviewCore
     func makeSession() throws -> any ModelSession { throw ModelError.unavailable("synthetic fixture") }
     func checkReadiness() async {}
     func prepareForTermination() async {}
+}
+
+@MainActor private struct FeedbackRail: View {
+    let store: WorkspaceStore
+    let job: Assignment
+    var body: some View {
+        HStack(spacing: 12) {
+            ProcessingStatusView(store: store, job: job, mode: .sideBySide)
+            AnalysisStatusLabel(phase: job.record.phase)
+            Text("100%").frame(width: 40)
+        }.padding(.horizontal, 20).frame(width: 440, height: 100).background(Color.white)
+            .font(.system(size: 12)).foregroundStyle(.secondary)
+            .environment(\.colorScheme, .light)
+    }
+}
+
+@Test @MainActor func analysisStatusUsesTwoNormalPagesAndKeepsExceptionalStatesHonest() {
+    for phase in [PipelinePhase.preparing, .recognizing, .verifyingWords, .scoring, .reviewing] {
+        #expect(AnalysisStatusLabel.title(for: phase) == "分析中")
+    }
+    #expect(AnalysisStatusLabel.title(for: .complete) == "分析完成")
+    #expect(AnalysisStatusLabel.title(for: .cancelled) == "已暂停")
+    #expect(AnalysisStatusLabel.title(for: .failed) == "处理未完成")
+}
+
+@Test @MainActor func settingsWindowTitleSurvivesTabChangesAndDetachesCleanly() {
+    let anchor = SettingsWindowTitle.Anchor()
+    let window = NSWindow(contentRect: CGRect(x: 0, y: 0, width: 680, height: 520),
+        styleMask: [.titled], backing: .buffered, defer: false)
+    window.isReleasedWhenClosed = false
+    window.contentView = anchor
+    #expect(window.title == "设置")
+    for title in ["通用", "阅读与批阅", "本地服务", "高级"] {
+        window.title = title
+        #expect(window.title == "设置")
+    }
+    window.contentView = nil
+    window.title = "其他窗口"
+    #expect(window.title == "其他窗口")
+    window.close()
 }

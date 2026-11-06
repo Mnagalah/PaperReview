@@ -1,7 +1,7 @@
 import SwiftUI
 
-/// Shared pane tracks, not per-control offsets. Both columns keep the same
-/// context and footer baselines as content and review state change.
+/// Shared pane tracks, not per-control offsets. The footer belongs only to
+/// sidebar service/settings controls; document and inspector have no status footer.
 enum WorkspaceGrid {
     static let paneInset: CGFloat = 20
     static let contextHeight: CGFloat = 64
@@ -38,6 +38,7 @@ struct WorkspaceLayout {
 
 enum WorkspaceMotion {
     static let columnDuration: TimeInterval = 0.22
+    static let progressTransition = Animation.timingCurve(0.23, 1, 0.32, 1, duration: 0.24)
 }
 
 /// A sheet must fit its owning workspace instead of increasing the parent

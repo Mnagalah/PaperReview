@@ -2,9 +2,9 @@
 
 仓库：[Mnagalah/PaperReview](https://github.com/Mnagalah/PaperReview)（Private）。
 
-## 当前正式版 · 0.1.3（4）· 2026-11-06
+## 当前正式版 · 0.1.4（5）· 2026-11-06
 
-用户已确认最终界面，并授权将本地模型版本设为正式版、同步 GitHub 和清理旧构建。当前基准包含原生三栏与液态玻璃、响应式分栏过渡、标题栏双击、对照切换，以及最新文案、内联进度、液态双点、确认／放弃和工具栏动作顺序。证据见[工作区反馈记录](verification/workspace-feedback-20261106.md)和[正式版记录](verification/release-0.1.3-20261106.md)。
+用户已确认同排进度与设置改进为最新正式基准，并授权替换日常版、同步 GitHub。基于 0.1.3 原生三栏、响应式布局和深浅色系统，纳入阶段条常驻、文字伸缩与状态翻页、底栏移除、未采用建议上移，以及服务／设置独立入口和固定设置标题。证据见[进度与设置记录](verification/progress-settings-20261106.md)和[0.1.4 正式版记录](verification/release-0.1.4-20261106.md)。
 
 - 日常使用：`dist/PaperReview.app` → `~/Library/Developer/PaperReview/Build/PaperReview.app`，保留现有快捷方式入口。
 - 正式发行：`dist/PaperReview-Release.app` → `~/Library/Developer/PaperReview/Release/PaperReview.app`；ZIP 在 `dist/release/`。

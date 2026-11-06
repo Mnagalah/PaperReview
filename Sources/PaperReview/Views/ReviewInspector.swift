@@ -18,26 +18,28 @@ struct ReviewInspector: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             if let job {
-                HStack(spacing: 8) {
-                    Picker("建议列表", selection: $processed) {
-                        Text("已发现问题 \(job.record.pendingIssues.count)").tag(false)
-                        Text("已确认项 \(job.record.review.confirmed.count)").tag(true)
-                    }.pickerStyle(.segmented).controlSize(.large).labelsHidden()
-                    Spacer(minLength: 0)
-                    Button { showingDiscarded = true } label: { Image(systemName: "trash") }
-                        .buttonStyle(.borderless).frame(width: 24, height: WorkspaceGrid.controlHeight)
-                        .help("已放弃的问题（\(job.record.review.discarded.count)）")
-                        .accessibilityLabel("已放弃的问题，\(job.record.review.discarded.count) 项")
-                        .disabled(job.record.review.discarded.isEmpty)
-                    .popover(isPresented: $showingDiscarded, arrowEdge: .top) {
-                        VStack(alignment: .leading, spacing: 12) {
-                            Text("已放弃的问题").font(.headline).padding(.horizontal, 18)
-                            history(job, resolution: .keepOriginal)
-                        }.padding(.vertical, 20).frame(width: 340, height: 360)
-                    }
-                }.frame(height: WorkspaceGrid.controlHeight)
-                    .padding(.horizontal, WorkspaceGrid.paneInset).padding(.top, 8)
-                    .frame(height: WorkspaceGrid.contextHeight, alignment: .top)
+                VStack(spacing: 0) {
+                    HStack(spacing: 8) {
+                        Picker("建议列表", selection: $processed) {
+                            Text("已发现问题 \(job.record.pendingIssues.count)").tag(false)
+                            Text("已确认项 \(job.record.review.confirmed.count)").tag(true)
+                        }.pickerStyle(.segmented).controlSize(.large).labelsHidden()
+                        Spacer(minLength: 0)
+                        Button { showingDiscarded = true } label: { Image(systemName: "trash") }
+                            .buttonStyle(.borderless).frame(width: 24, height: WorkspaceGrid.controlHeight)
+                            .help("已放弃的问题（\(job.record.review.discarded.count)）")
+                            .accessibilityLabel("已放弃的问题，\(job.record.review.discarded.count) 项")
+                            .disabled(job.record.review.discarded.isEmpty)
+                        .popover(isPresented: $showingDiscarded, arrowEdge: .top) {
+                            VStack(alignment: .leading, spacing: 12) {
+                                Text("已放弃的问题").font(.headline).padding(.horizontal, 18)
+                                history(job, resolution: .keepOriginal)
+                            }.padding(.vertical, 20).frame(width: 340, height: 360)
+                        }
+                    }.frame(height: WorkspaceGrid.controlHeight)
+                        .padding(.horizontal, WorkspaceGrid.paneInset).padding(.top, 8)
+                    if unadoptedCount(job) > 0 { unadoptedButton(job) }
+                }.frame(height: WorkspaceGrid.contextHeight, alignment: .top)
                 if processed { history(job, resolution: .annotation) }
                 else if !job.record.pendingIssues.isEmpty { suggestions(job) }
                 else { emptyState(job) }
@@ -45,23 +47,26 @@ struct ReviewInspector: View {
                 Text("导入作业后，建议会显示在这里。").font(.callout).foregroundStyle(.secondary).padding(20)
                 Spacer()
             }
-            Divider()
-            HStack {
-                if let job, unadoptedCount(job) > 0 {
-                    Button { showingUnadopted = true } label: {
-                        HStack { Text("\(unadoptedCount(job)) 条模型建议未采用"); Spacer(); Image(systemName: "chevron.right") }
-                    }.buttonStyle(.plain).font(.system(size: 12)).foregroundStyle(.secondary)
-                        .popover(isPresented: $showingUnadopted, arrowEdge: .bottom) {
-                            UnadoptedReviewView(store: store, job: job).padding(20).frame(width: 380)
-                        }
-                } else { Spacer(minLength: 0) }
-            }.padding(.horizontal, WorkspaceGrid.paneInset).frame(height: WorkspaceGrid.footerHeight)
         }
         .background {
             WorkspaceStyle.panel.opacity(reduceTransparency || contrast == .increased ? 1 : colorScheme == .light ? 0.86 : 0.3)
                 .ignoresSafeArea()
         }
         .onChange(of: job?.id) { _, _ in showingUnadopted = false; showingDiscarded = false }
+    }
+
+    private func unadoptedButton(_ job: Assignment) -> some View {
+        Button { showingUnadopted = true } label: {
+            HStack(spacing: 8) {
+                Text("\(unadoptedCount(job)) 条模型建议未采用")
+                Spacer(minLength: 0)
+                Image(systemName: "chevron.right").font(.caption2)
+            }.frame(maxWidth: .infinity).frame(height: 24).contentShape(Rectangle())
+        }.buttonStyle(.plain).font(.system(size: 12)).foregroundStyle(.secondary)
+            .padding(.horizontal, WorkspaceGrid.paneInset)
+            .popover(isPresented: $showingUnadopted, arrowEdge: .top) {
+                UnadoptedReviewView(store: store, job: job).padding(20).frame(width: 380)
+            }
     }
 
     private func suggestions(_ job: Assignment) -> some View {

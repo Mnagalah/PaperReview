@@ -5,6 +5,7 @@ struct ContentView: View {
     @Bindable var store: WorkspaceStore
     @Environment(\.openSettings) private var openSettings
     @Environment(\.undoManager) private var undoManager
+    @AppStorage(SettingsSection.preferenceKey) private var settingsSection = SettingsSection.general
     @State private var dropping = false
     @State private var deletingJob: Assignment?
     @State private var search = ""
@@ -132,18 +133,34 @@ struct ContentView: View {
                         }.frame(maxWidth: .infinity, alignment: .leading)
                     }
                     .padding(.vertical, 8).tag(job.id)
-                    .contextMenu { Button("删除作业…", role: .destructive) { deletingJob = job }.disabled(!store.canDelete(job) || job.savingReview) }
+                    .contextMenu {
+                        if job.isReviewed {
+                            Button("继续批阅") { store.reopenReview(job, undoManager: undoManager) }
+                                .disabled(job.savingReview || job.reviewSaveError != nil || store.activeID == job.id)
+                        }
+                        Button("删除作业…", role: .destructive) { deletingJob = job }.disabled(!store.canDelete(job) || job.savingReview)
+                    }
                 }
             }.listStyle(.sidebar).scrollContentBackground(.hidden)
                 .overlay { if filtered.isEmpty { Text(search.isEmpty ? "暂无作业" : "没有匹配的作业").font(.callout).foregroundStyle(.secondary) } }
                 .onDeleteCommand { if let job = store.selected, store.canDelete(job), !job.savingReview { deletingJob = job } }
-            Button { openSettings() } label: {
-                HStack(spacing: 8) {
-                    Circle().fill(store.allModelsReady ? Color.green.opacity(0.7) : Color.secondary).frame(width: 5, height: 5)
-                    Text(store.allModelsReady ? "本机服务已就绪" : "本机服务未就绪")
-                    Spacer(); Image(systemName: "chevron.right").font(.caption2)
-                }.font(.system(size: 11)).foregroundStyle(.secondary).padding(.horizontal, 18).frame(height: WorkspaceGrid.footerHeight)
-            }.buttonStyle(.plain)
+            HStack(spacing: 0) {
+                Button {
+                    settingsSection = .services
+                    openSettings()
+                } label: {
+                    HStack(spacing: 8) {
+                        Circle().fill(store.allModelsReady ? Color.green.opacity(0.7) : Color.secondary).frame(width: 5, height: 5)
+                        Text(store.allModelsReady ? "本机服务已就绪" : "本机服务未就绪")
+                        Spacer(minLength: 0)
+                    }.frame(maxWidth: .infinity, maxHeight: .infinity).contentShape(Rectangle())
+                }.help("打开本地服务设置")
+                Button { openSettings() } label: {
+                    Image(systemName: "gearshape").font(.system(size: 13))
+                        .frame(width: 32, height: 32).contentShape(Rectangle())
+                }.help("设置").accessibilityLabel("设置")
+            }.buttonStyle(.plain).font(.system(size: 11)).foregroundStyle(.secondary)
+                .padding(.leading, 18).padding(.trailing, 10).frame(height: WorkspaceGrid.footerHeight)
         }
     }
     private var workspace: some View {

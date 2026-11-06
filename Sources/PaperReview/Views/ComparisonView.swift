@@ -5,10 +5,10 @@ import PaperReviewCore
 struct ComparisonView: View {
     @Bindable var store: WorkspaceStore
     @Bindable var job: Assignment
-    @Environment(\.undoManager) private var undoManager
     @State private var enhanced = true
     @Binding var editing: Bool
     @State private var annotationPreview = false
+    @State private var showingScale = false
     @AppStorage("showRecognitionUncertainty") private var showUncertainty = false
     @AppStorage("showProblemMarks") private var showMarks = true
     @AppStorage("readingFontSize") private var fontSize = 18.0
@@ -22,6 +22,7 @@ struct ComparisonView: View {
     }
     var body: some View {
         VStack(spacing: 0) {
+            if let error = job.reviewSaveError { saveRecoveryBanner(error) }
             if job.record.phase == .failed || job.record.phase == .cancelled || job.record.phase == .needsConfirmation { recoveryBanner }
             if isReading {
                 readingContent
@@ -43,21 +44,6 @@ struct ComparisonView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
             controls
-            Divider().overlay(WorkspaceStyle.border)
-            HStack(spacing: 12) {
-                if job.record.phase == .complete {
-                    Text(job.record.reviewStatus).foregroundStyle(.secondary)
-                    Divider().frame(height: 12)
-                }
-                if job.savingReview { ProgressView().controlSize(.mini); Text("正在保存") }
-                else if let error = job.reviewSaveError {
-                    Label("尚未保存", systemImage: "exclamationmark.circle").foregroundStyle(Color(nsColor: WorkspaceStyle.warningColor)).help(error)
-                    Button("重试保存") { store.retryReviewSave(job) }
-                } else { Label("已保存", systemImage: "checkmark").foregroundStyle(.secondary) }
-                Spacer()
-                if job.isReviewed { Button("继续修改") { store.reopenReview(job, undoManager: undoManager) } }
-            }.font(.system(size: 12)).buttonStyle(.borderless)
-                .padding(.horizontal, WorkspaceGrid.paneInset).frame(height: WorkspaceGrid.footerHeight)
         }
         .background(WorkspaceStyle.canvas)
         .sheet(isPresented: $editing) { TranscriptEditor(store: store, job: job) }
@@ -124,18 +110,29 @@ struct ComparisonView: View {
         }
     }
     private var controls: some View {
-        ViewThatFits(in: .horizontal) {
+        GeometryReader { geometry in
+            let compact = geometry.size.width < 760
             HStack(spacing: 12) {
-                markControls
-                Spacer(minLength: 12)
+                if compact {
+                    Menu {
+                        Toggle("问题标记", isOn: $showMarks)
+                        if isReading { Toggle("疑义标记", isOn: $showUncertainty) }
+                    } label: { Image(systemName: "text.badge.checkmark") }
+                        .menuStyle(.borderlessButton).menuIndicator(.hidden).frame(width: 24)
+                        .help("标记显示").accessibilityLabel("标记显示")
+                } else { markControls }
                 processingStatus
-                scaleControls
-            }.frame(height: 42)
-            VStack(spacing: 0) {
-                HStack { processingStatus; Spacer(minLength: 0) }.frame(height: 36)
-                HStack { markControls; Spacer(minLength: 12); scaleControls }.frame(height: 36)
-            }
-        }
+                AnalysisStatusLabel(phase: job.record.phase)
+                if compact {
+                    Button(isReading ? "\(Int(fontSize)) pt" : "\(Int(job.reading.zoom * 100))%") { showingScale = true }
+                        .monospacedDigit().frame(width: 40, height: 28)
+                        .help(isReading ? "调节正文字号" : "调节对照缩放")
+                        .popover(isPresented: $showingScale, arrowEdge: .bottom) {
+                            scaleControls.font(.system(size: 12)).buttonStyle(.borderless).padding(16).fixedSize()
+                        }
+                } else { scaleControls }
+            }.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .trailing)
+        }.frame(height: 42)
         .font(.system(size: 12)).foregroundStyle(.secondary).buttonStyle(.borderless)
         .padding(.horizontal, WorkspaceGrid.paneInset)
     }
@@ -163,6 +160,15 @@ struct ComparisonView: View {
                     .monospacedDigit().frame(width: 40).help("恢复 100%")
             }
         }.fixedSize()
+    }
+    private func saveRecoveryBanner(_ error: String) -> some View {
+        HStack(spacing: 12) {
+            Label("批阅修改尚未保存", systemImage: "exclamationmark.circle")
+                .foregroundStyle(Color(nsColor: WorkspaceStyle.warningColor)).help(error)
+            Spacer(minLength: 0)
+            Button("重试保存") { store.retryReviewSave(job) }
+        }.font(.callout).padding(.horizontal, WorkspaceGrid.paneInset).padding(.vertical, 12)
+            .background(Color(nsColor: WorkspaceStyle.warningColor).opacity(0.06))
     }
     private var recoveryBanner: some View {
         HStack(spacing: 12) {

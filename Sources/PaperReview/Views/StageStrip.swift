@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 import PaperReviewCore
 
 struct StageStrip: View {
@@ -9,11 +10,13 @@ struct StageStrip: View {
     let onRetryOCR: () -> Void
     var showsLayoutPicker = true
     var inline = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     var body: some View {
         HStack(spacing: 16) {
-            ViewThatFits(in: .horizontal) {
-                stages(compact: false)
-                stages(compact: true)
+            GeometryReader { geometry in
+                // Adapt to the available track, never to the current word count.
+                stages(compact: geometry.size.width < 500, minimal: geometry.size.width < 350)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .trailing)
             }
             if !inline { Spacer(minLength: 0) }
             if showsLayoutPicker { Picker("对照方式", selection: $comparisonMode) {
@@ -24,19 +27,21 @@ struct StageStrip: View {
         }.font(.system(size: inline ? 12 : 14)).padding(.horizontal, inline ? 0 : 22).frame(height: inline ? 32 : 60)
             .background { if !inline { WorkspaceStyle.panel } }
     }
-    private func stages(compact: Bool) -> some View {
-        HStack(spacing: inline ? 8 : 12) {
-            item("照片", phase: .preparing, complete: record.width > 1, compact: compact)
+    private func stages(compact: Bool, minimal: Bool) -> some View {
+        HStack(spacing: minimal ? 4 : inline ? 6 : 12) {
+            item("照片", phase: .preparing, complete: record.width > 1, minimal: minimal)
             separator
-            item(transcriptionTitle, phase: record.phase == .verifyingWords ? .verifyingWords : .recognizing, complete: record.transcript != nil, compact: compact)
+            item(minimal && record.phase == .verifyingWords ? "\(record.wordChecksCompleted ?? 0)/\(record.wordChecksTotal ?? 0)" : transcriptionTitle, phase: record.phase == .verifyingWords ? .verifyingWords : .recognizing, complete: record.transcript != nil, minimal: minimal)
             separator
             JevStageButton(record: record, threshold: threshold, canRetryOCR: canRetryOCR, onRetryOCR: onRetryOCR) {
                 item(compact ? "Jev" : "Jev 复核",
-                    phase: .scoring, complete: record.score != nil || record.humanConfirmed, compact: false)
+                    phase: .scoring, complete: record.score != nil || record.humanConfirmed, minimal: minimal)
             }
             separator
-            item("基础审核", phase: .reviewing, complete: record.phase == .complete, compact: compact)
+            item(compact ? "审核" : "基础审核", phase: .reviewing, complete: record.phase == .complete, minimal: minimal)
         }.fixedSize(horizontal: true, vertical: false)
+            .animation(reduceMotion ? nil : WorkspaceMotion.progressTransition, value: transcriptionTitle)
+            .animation(reduceMotion ? nil : WorkspaceMotion.progressTransition, value: record.phase)
     }
     private var transcriptionTitle: String {
         if record.phase == .verifyingWords {
@@ -45,28 +50,29 @@ struct StageStrip: View {
         return record.phase == .recognizing && record.attempt > 1 ? "转写 · 第 \(record.attempt) 次" : "转写"
     }
     private var separator: some View { Image(systemName: "chevron.right").font(.caption2).foregroundStyle(.tertiary) }
-    private func item(_ title: String, phase: PipelinePhase, complete: Bool, compact: Bool) -> some View {
-        HStack(spacing: 8) {
+    private func item(_ title: String, phase: PipelinePhase, complete: Bool, minimal: Bool) -> some View {
+        HStack(spacing: minimal ? 4 : inline ? 6 : 8) {
             Group {
                 if record.phase == phase { ProgressView().controlSize(.small) }
                 else if record.phase == .failed && record.failedPhase == phase { Image(systemName: "exclamationmark.circle").foregroundStyle(Color(nsColor: WorkspaceStyle.warningColor)) }
                 else { Image(systemName: complete ? "checkmark.circle.fill" : "circle").foregroundStyle(complete ? Color.primary.opacity(0.85) : Color.secondary.opacity(0.5)) }
             }.frame(width: 17)
-            if !compact || record.phase == phase {
-                Text(title).fontWeight(record.phase == phase ? .semibold : .medium).fixedSize().monospacedDigit()
+            if !minimal || record.phase == phase {
+                StageTitle(text: title, size: inline ? 12 : 14, active: record.phase == phase)
                     .foregroundStyle(record.phase == phase || complete ? Color.primary : Color.secondary)
+                    .transition(.opacity)
             }
             if inline, phase == .verifyingWords, record.phase == .verifyingWords,
                let total = record.wordChecksTotal, total > 0 {
                 ProgressView(value: Double(max(0, min(record.wordChecksCompleted ?? 0, total))), total: Double(total))
-                    .progressViewStyle(.linear).frame(width: 48).accessibilityLabel("逐词识别进度")
+                    .progressViewStyle(.linear).frame(width: minimal ? 24 : 48).accessibilityLabel("逐词识别进度")
+                    .transition(.opacity)
             }
         }.accessibilityElement(children: .combine).accessibilityLabel(title).help(title)
     }
 }
 
-/// Each ViewThatFits candidate owns its own presentation state. A shared
-/// popover binding would let two mounted candidate views present at once.
+/// Jev details remain anchored to their stage, including after completion.
 private struct JevStageButton<Label: View>: View {
     let record: AssignmentRecord
     let threshold: Double
@@ -99,5 +105,20 @@ private struct JevStageButton<Label: View>: View {
                         .disabled(!canRetryOCR)
                 }.padding(20).frame(width: 320)
             }
+    }
+}
+
+/// Animate the measured text track, not the glyphs. The rail expands leftward
+/// from its fixed trailing edge; text crossfades while the track changes width.
+private struct StageTitle: View {
+    let text: String
+    let size: CGFloat
+    let active: Bool
+    private var font: NSFont { .monospacedDigitSystemFont(ofSize: size, weight: active ? .semibold : .medium) }
+    var body: some View {
+        Text(text).font(Font(font)).fixedSize()
+            .contentTransition(.opacity)
+            .frame(width: ceil((text as NSString).size(withAttributes: [.font: font]).width), alignment: .leading)
+            .clipped()
     }
 }
