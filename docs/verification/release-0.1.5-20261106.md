@@ -27,4 +27,10 @@
 
 ## GitHub 发布
 
-发布目标为 `v0.1.5`，附件与上述本地安装包一致。先上传草稿附件，确认完整后设为 Latest，再下载核对已发布文件。远端完成情况在发布后补记。
+- 发布提交和标签：`84968fc1db7ef739be40bda98feb48238bf79a89`、`v0.1.5`；作者、提交者、标签署名均为 `Mnagalah` 与既有 GitHub noreply 地址。
+- 源码和文档内容通过 GitHub 插件上传；插件没有发行附件上传接口，因此用官方 `gh` 上传 ZIP，不使用浏览器。
+- 先建草稿并核对附件为 `uploaded`、3,239,258 字节，再正式发布并设为 Latest。GitHub 插件回读 `/releases/latest` 返回 `v0.1.5`，非草稿、非预发行；发行 ID `436580489`，附件 ID `717388219`。
+- 发布时间：2026-11-06 22:14:37（Asia/Shanghai）。[发行页](https://github.com/Mnagalah/PaperReview/releases/tag/v0.1.5) · [最新下载入口](https://github.com/Mnagalah/PaperReview/releases/latest)。
+- 从 GitHub 重新下载已发布 ZIP，与本地产物逐字节相同；下载文件解压后的版本为 0.1.5（6），严格签名校验通过。
+- 远端 README 与用户审阅附件逐字节一致，其中“下载发行版”链接使用 `releases/latest`，现已指向 0.1.5；旧 v0.1.4 仍是历史版本。
+- 仓库保持原有 Private 权限；只有获准访问仓库的人可下载安装包。
